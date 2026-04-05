@@ -1,3 +1,4 @@
+from domain.transaction_category.entity import TransactionCategory
 from domain.transaction_category.errors import (
     TransactionCategoryInvalidDataError,
     TransactionCategoryPolicyError,
@@ -25,6 +26,22 @@ class TransactionCategoryPolicyService:
             raise TransactionCategoryPolicyError(
                 msg="только владелец может работать с категорией транзакции",
                 data={"user_id": user_id.user_id, "owner_id": owner_id.user_id},
+            )
+
+    @staticmethod
+    def can_edit(category: TransactionCategory) -> None:
+        """Можно ли редактировать категорию транзакции.
+
+        Args:
+            category (TransactionCategory): Категория, которую нужно проверить.
+
+        Raises:
+            TransactionCategoryPolicyError: Редактирование категории запрещено.
+        """
+        if category.state.is_deleted():
+            raise TransactionCategoryPolicyError(
+                msg="категория транзакции удалена",
+                data={"state": category.state.value},
             )
 
 

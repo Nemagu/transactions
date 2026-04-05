@@ -29,6 +29,19 @@ def test_is_owner_rejects_non_owner(user_id_factory) -> None:
         )
 
 
+def test_can_edit_allows_active_category(transaction_category_factory) -> None:
+    category = transaction_category_factory()
+
+    assert TransactionCategoryPolicyService.can_edit(category) is None
+
+
+def test_can_edit_rejects_deleted_category(transaction_category_factory) -> None:
+    category = transaction_category_factory(state=TransactionCategoryState.DELETED)
+
+    with pytest.raises(TransactionCategoryPolicyError):
+        TransactionCategoryPolicyService.can_edit(category)
+
+
 class InMemoryTransactionCategoryRepository(TransactionCategoryRepository):
     def __init__(self, categories) -> None:
         self._categories = categories
