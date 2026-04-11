@@ -1,37 +1,25 @@
-from domain.transaction_category.entity import TransactionCategory
-from domain.transaction_category.errors import (
-    TransactionCategoryError,
-    TransactionCategoryIdempotentError,
-    TransactionCategoryInvalidDataError,
-    TransactionCategoryNotFoundError,
-    TransactionCategoryPolicyError,
-)
-from domain.transaction_category.factory import TransactionCategoryFactory
-from domain.transaction_category.repository import TransactionCategoryRepository
-from domain.transaction_category.services import (
-    TransactionCategoryNameUniquenessService,
+"""Публичный API доменного пакета категорий транзакций."""
+
+from src.domain.transaction_category.entity import TransactionCategory
+from src.domain.transaction_category.factory import TransactionCategoryFactory
+from src.domain.transaction_category.repository import TransactionCategoryRepository
+from src.domain.transaction_category.services import (
     TransactionCategoryPolicyService,
+    TransactionCategoryUniquenessService,
 )
-from domain.transaction_category.value_objects import (
+from src.domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryID,
     TransactionCategoryName,
-    TransactionCategoryState,
 )
 
 __all__ = [
     "TransactionCategory",
     "TransactionCategoryDescription",
-    "TransactionCategoryError",
     "TransactionCategoryFactory",
     "TransactionCategoryID",
-    "TransactionCategoryIdempotentError",
-    "TransactionCategoryInvalidDataError",
     "TransactionCategoryName",
-    "TransactionCategoryNameUniquenessService",
-    "TransactionCategoryNotFoundError",
-    "TransactionCategoryPolicyError",
     "TransactionCategoryPolicyService",
     "TransactionCategoryRepository",
-    "TransactionCategoryState",
+    "TransactionCategoryUniquenessService",
 ]

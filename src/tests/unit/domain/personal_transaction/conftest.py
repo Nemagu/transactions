@@ -1,48 +1,82 @@
 from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 
-from domain.personal_transaction.entity import PersonalTransaction
-from domain.personal_transaction.value_objects import (
+from src.domain.personal_transaction.entity import PersonalTransaction
+from src.domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,
     PersonalTransactionID,
     PersonalTransactionName,
-    PersonalTransactionState,
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from domain.transaction_category.value_objects import TransactionCategoryID
-from domain.user.value_objects import UserID
-from domain.value_objects import Version
+from src.domain.transaction_category.entity import TransactionCategory
+from src.domain.transaction_category.value_objects import (
+    TransactionCategoryDescription,
+    TransactionCategoryID,
+    TransactionCategoryName,
+)
+from src.domain.user.value_objects import UserID
+from src.domain.value_objects import State, Version
+
+
+@pytest.fixture
+def transaction_category_set_factory(
+    user_id_factory: Callable[..., UserID],
+) -> Callable[..., set[TransactionCategory]]:
+    def factory(
+        *,
+        owner_id: UserID | None = None,
+        names: tuple[str, ...] = ("Food",),
+        state: State = State.ACTIVE,
+    ) -> set[TransactionCategory]:
+        category_owner_id = owner_id or user_id_factory()
+        return {
+            TransactionCategory(
+                category_id=TransactionCategoryID(uuid4()),
+                owner_id=category_owner_id,
+                name=TransactionCategoryName(name),
+                description=TransactionCategoryDescription(f"{name} description"),
+                state=state,
+                version=Version(1),
+            )
+            for name in names
+        }
+
+    return factory
 
 
 @pytest.fixture
 def personal_transaction_factory(
     user_id_factory: Callable[..., UserID],
+    transaction_category_set_factory: Callable[..., set[TransactionCategory]],
 ) -> Callable[..., PersonalTransaction]:
     def factory(
         *,
         transaction_id: PersonalTransactionID | None = None,
+        categories: set[TransactionCategory] | None = None,
         owner_id: UserID | None = None,
         name: str = "Coffee",
         description: str = "Morning coffee",
-        category_ids: set[TransactionCategoryID] | None = None,
         transaction_type: PersonalTransactionType = PersonalTransactionType.EXPENSE,
         money_amount: MoneyAmount | None = None,
         transaction_time: PersonalTransactionTime | None = None,
-        state: PersonalTransactionState = PersonalTransactionState.ACTIVE,
+        state: State = State.ACTIVE,
         version: int = 1,
     ) -> PersonalTransaction:
+        transaction_owner_id = owner_id or user_id_factory()
         return PersonalTransaction(
-            transaction_id=transaction_id or PersonalTransactionID(user_id_factory().user_id),
-            owner_id=owner_id or user_id_factory(),
+            transaction_id=transaction_id or PersonalTransactionID(uuid4()),
+            categories=categories
+            or transaction_category_set_factory(owner_id=transaction_owner_id),
+            owner_id=transaction_owner_id,
             name=PersonalTransactionName(name),
             description=PersonalTransactionDescription(description),
-            category_ids=category_ids or {TransactionCategoryID(user_id_factory().user_id)},
             transaction_type=transaction_type,
             money_amount=money_amount
             or MoneyAmount(amount=Decimal("100"), currency=Currency.RUBLE),

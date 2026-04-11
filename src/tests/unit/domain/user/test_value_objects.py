@@ -2,8 +2,14 @@ from uuid import uuid4
 
 import pytest
 
-from domain.user.errors import UserError, UserInvalidDataError
-from domain.user.value_objects import FirstName, LastName, UserID, UserState, UserStatus
+from src.domain.errors import DomainError, ValueObjectInvalidDataError
+from src.domain.user.value_objects import (
+    FirstName,
+    LastName,
+    UserID,
+    UserState,
+    UserStatus,
+)
 
 
 def test_user_id_keeps_uuid_value() -> None:
@@ -39,7 +45,7 @@ def test_name_value_objects_reject_too_long_value(
 ) -> None:
     long_value = "a" * 51
 
-    with pytest.raises(UserInvalidDataError):
+    with pytest.raises(ValueObjectInvalidDataError):
         cls(long_value)
 
 
@@ -82,7 +88,7 @@ def test_enum_helper_methods(enum_value, method_name: str) -> None:
     ids=["unknown-status", "unknown-state"],
 )
 def test_enums_raise_for_unknown_string(enum_cls, value: str) -> None:
-    with pytest.raises(UserInvalidDataError) as exc_info:
+    with pytest.raises(ValueObjectInvalidDataError) as exc_info:
         enum_cls.from_str(value)
 
-    assert isinstance(exc_info.value, UserError)
+    assert isinstance(exc_info.value, DomainError)

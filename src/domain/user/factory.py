@@ -1,29 +1,31 @@
+"""Фабрика создания и восстановления сущностей пользователя."""
+
 from uuid import UUID
 
-from domain.user.entity import User
-from domain.user.value_objects import FirstName, LastName, UserID, UserState, UserStatus
-from domain.value_objects import Version
+from src.domain.user.entity import User
+from src.domain.user.value_objects import (
+    FirstName,
+    LastName,
+    UserID,
+    UserState,
+    UserStatus,
+)
+from src.domain.value_objects import Version
 
 
 class UserFactory:
-    """Фабрика создания и восстановления пользователя."""
+    """Фабрика для создания новых и восстановленных пользователей."""
 
     @staticmethod
-    def new(user_id: UUID, first_name: str = "", last_name: str = "") -> User:
-        """Создание нового пользователя.
-
+    def new(user_id: UUID, first_name: str, last_name: str) -> User:
+        """
         Args:
-            user_id (UUID): Идентификатор для нового пользователя.
-            first_name (str, optional): Имя нового пользователя. По умолчанию пустая \
-                строка.
-            last_name (str, optional): Фамилия нового пользователя. По умолчанию пустая \
-                строка.
-
-        Raises:
-            UserDomainError: Ошибки при создании объектов значений из переданных данных.
+            user_id (UUID): Идентификатор пользователя.
+            first_name (str): Имя пользователя.
+            last_name (str): Фамилия пользователя.
 
         Returns:
-            User: Новый пользователь.
+            User: Новый активный пользователь с ролью обычного пользователя.
         """
         return User(
             user_id=UserID(user_id),
@@ -43,21 +45,17 @@ class UserFactory:
         state: str,
         version: int,
     ) -> User:
-        """Восстановление пользователя.
-
+        """
         Args:
             user_id (UUID): Идентификатор пользователя.
             first_name (str): Имя пользователя.
             last_name (str): Фамилия пользователя.
-            status (str): Статус пользователя.
-            state (str): Состояние пользователя.
-            version (int): Версия пользователя.
-
-        Raises:
-            UserDomainError: Ошибки при создании объектов значений из переданных данных.
+            status (str): Статус пользователя в строковом виде.
+            state (str): Состояние пользователя в строковом виде.
+            version (int): Версия агрегата.
 
         Returns:
-            User: Восстановленный пользователь.
+            User: Восстановленная сущность пользователя.
         """
         return User(
             user_id=UserID(user_id),

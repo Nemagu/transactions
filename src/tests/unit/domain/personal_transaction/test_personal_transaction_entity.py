@@ -3,17 +3,16 @@ from decimal import Decimal
 
 import pytest
 
-from domain.personal_transaction.errors import PersonalTransactionIdempotentError
-from domain.personal_transaction.value_objects import (
+from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
+from src.domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,
     PersonalTransactionName,
-    PersonalTransactionState,
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from domain.transaction_category.value_objects import TransactionCategoryID
+from src.domain.value_objects import State
 
 
 def test_personal_transaction_exposes_created_state(personal_transaction_factory) -> None:
@@ -24,7 +23,7 @@ def test_personal_transaction_exposes_created_state(personal_transaction_factory
     assert transaction.transaction_type == PersonalTransactionType.EXPENSE
     assert transaction.money_amount == MoneyAmount(Decimal("100"), Currency.RUBLE)
     assert transaction.transaction_time == PersonalTransactionTime(datetime(2026, 4, 5, 12, 0, 0))
-    assert transaction.state == PersonalTransactionState.ACTIVE
+    assert transaction.state == State.ACTIVE
     assert transaction.version.version == 1
     assert transaction.original_version.version == 1
 
@@ -61,27 +60,22 @@ def test_personal_transaction_updates_fields_once_per_cycle(
     transaction = personal_transaction_factory()
 
     getattr(transaction, method_name)(value)
-    transaction.delete()
 
     assert getattr(transaction, expected_attr) == value
     assert transaction.version.version == 2
     assert transaction.original_version.version == 1
 
 
-def test_personal_transaction_updates_category_ids_once_per_cycle(
+def test_personal_transaction_updates_categories_once_per_cycle(
     personal_transaction_factory,
-    user_id_factory,
+    transaction_category_set_factory,
 ) -> None:
     transaction = personal_transaction_factory()
-    category_ids = {
-        TransactionCategoryID(user_id_factory().user_id),
-        TransactionCategoryID(user_id_factory().user_id),
-    }
+    categories = transaction_category_set_factory(names=("Taxi", "Transport"))
 
-    transaction.new_category_ids(category_ids)
-    transaction.delete()
+    transaction.new_categories(categories)
 
-    assert transaction.category_ids == category_ids
+    assert transaction.category_ids == {category.category_id for category in categories}
     assert transaction.version.version == 2
     assert transaction.original_version.version == 1
 
@@ -110,37 +104,42 @@ def test_personal_transaction_rejects_idempotent_field_changes(
 ) -> None:
     transaction = personal_transaction_factory()
 
-    with pytest.raises(PersonalTransactionIdempotentError):
+    with pytest.raises(EntityIdempotentError):
         getattr(transaction, method_name)(value)
 
 
-def test_personal_transaction_rejects_idempotent_category_ids_change(
+def test_personal_transaction_rejects_idempotent_categories_change(
     personal_transaction_factory,
+    transaction_category_set_factory,
 ) -> None:
-    transaction = personal_transaction_factory()
+    categories = transaction_category_set_factory(names=("Food",))
+    category_owner_id = next(iter(categories)).owner_id
+    transaction = personal_transaction_factory(
+        owner_id=category_owner_id,
+        categories=categories,
+    )
 
-    with pytest.raises(PersonalTransactionIdempotentError):
-        transaction.new_category_ids(transaction.category_ids)
+    with pytest.raises(EntityIdempotentError):
+        transaction.new_categories(categories)
 
 
 @pytest.mark.parametrize(
     ("method_name", "initial_state", "expected_state"),
     [
-        ("activate", PersonalTransactionState.DELETED, PersonalTransactionState.ACTIVE),
-        ("delete", PersonalTransactionState.ACTIVE, PersonalTransactionState.DELETED),
+        ("activate", State.DELETED, State.ACTIVE),
+        ("delete", State.ACTIVE, State.DELETED),
     ],
     ids=["activate-transaction", "delete-transaction"],
 )
 def test_personal_transaction_changes_state(
     personal_transaction_factory,
     method_name: str,
-    initial_state: PersonalTransactionState,
-    expected_state: PersonalTransactionState,
+    initial_state: State,
+    expected_state: State,
 ) -> None:
     transaction = personal_transaction_factory(state=initial_state)
 
     getattr(transaction, method_name)()
-    transaction.new_name(PersonalTransactionName("Taxi"))
 
     assert transaction.state == expected_state
     assert transaction.version.version == 2
@@ -150,19 +149,19 @@ def test_personal_transaction_changes_state(
 @pytest.mark.parametrize(
     ("method_name", "state"),
     [
-        ("activate", PersonalTransactionState.ACTIVE),
-        ("delete", PersonalTransactionState.DELETED),
+        ("activate", State.ACTIVE),
+        ("delete", State.DELETED),
     ],
     ids=["activate-active", "delete-deleted"],
 )
 def test_personal_transaction_rejects_idempotent_state_changes(
     personal_transaction_factory,
     method_name: str,
-    state: PersonalTransactionState,
+    state: State,
 ) -> None:
     transaction = personal_transaction_factory(state=state)
 
-    with pytest.raises(PersonalTransactionIdempotentError):
+    with pytest.raises(EntityIdempotentError):
         getattr(transaction, method_name)()
 
 
@@ -177,3 +176,58 @@ def test_personal_transaction_starts_new_version_cycle_after_persist(
 
     assert transaction.version.version == 3
     assert transaction.original_version.version == 2
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    [
+        "new_description",
+        "new_categories",
+        "add_categories",
+        "remove_categories",
+        "new_transaction_type",
+        "new_money_amount",
+        "new_transaction_time",
+    ],
+    ids=[
+        "change-description",
+        "change-categories",
+        "add-categories",
+        "remove-categories",
+        "change-type",
+        "change-amount",
+        "change-time",
+    ],
+)
+def test_personal_transaction_rejects_changes_when_deleted(
+    personal_transaction_factory,
+    transaction_category_set_factory,
+    method_name: str,
+) -> None:
+    transaction = personal_transaction_factory(state=State.DELETED)
+    value_map = {
+        "new_description": PersonalTransactionDescription("Ride to office"),
+        "new_categories": transaction_category_set_factory(
+            owner_id=transaction.owner_id,
+            names=("Taxi", "Office"),
+        ),
+        "add_categories": transaction_category_set_factory(
+            owner_id=transaction.owner_id,
+            names=("Taxi",),
+        ),
+        "remove_categories": transaction_category_set_factory(
+            owner_id=transaction.owner_id,
+            names=("Food",),
+        ),
+        "new_transaction_type": PersonalTransactionType.INCOME,
+        "new_money_amount": MoneyAmount(
+            amount=Decimal("250"),
+            currency=Currency.DOLLAR,
+        ),
+        "new_transaction_time": PersonalTransactionTime(
+            datetime(2026, 4, 6, 15, 30, 0)
+        ),
+    }
+
+    with pytest.raises(EntityInvalidDataError):
+        getattr(transaction, method_name)(value_map[method_name])

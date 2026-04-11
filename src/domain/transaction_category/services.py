@@ -1,79 +1,79 @@
-from domain.transaction_category.entity import TransactionCategory
-from domain.transaction_category.errors import (
-    TransactionCategoryInvalidDataError,
-    TransactionCategoryPolicyError,
-)
-from domain.transaction_category.repository import TransactionCategoryRepository
-from domain.transaction_category.value_objects import TransactionCategoryName
-from domain.user.value_objects import UserID
+"""Доменные сервисы, связанные с категориями транзакций."""
+
+from src.domain.errors import EntityInvalidDataError, EntityPolicyError
+from src.domain.transaction_category.entity import TransactionCategory
+from src.domain.transaction_category.repository import TransactionCategoryRepository
+from src.domain.transaction_category.value_objects import TransactionCategoryName
+from src.domain.user.entity import User
 
 
 class TransactionCategoryPolicyService:
-    """Сервис проверки прав доступа для работы с категориями транзакции."""
+    """Сервис проверки политик доступа к категориям транзакций."""
 
     @staticmethod
-    def is_owner(user_id: UserID, owner_id: UserID) -> None:
-        """Является ли пользователь владельцем категории транзакции.
-
+    def is_owner(user: User, category: TransactionCategory) -> None:
+        """
         Args:
-            user_id (UserID): Идентификатор пользователя.
-            owner_id (UserID): Идентификатор владельца категории.
+            user (User): Пользователь, выполняющий действие.
+            category (TransactionCategory): Целевая категория транзакции.
 
         Raises:
-            TransactionCategoryPolicyError: Пользователь не является владельцем.
+            EntityPolicyError: Пользователь не является владельцем категории.
         """
-        if user_id != owner_id:
-            raise TransactionCategoryPolicyError(
+        if user.user_id != category.owner_id:
+            raise EntityPolicyError(
                 msg="только владелец может работать с категорией транзакции",
-                data={"user_id": user_id.user_id, "owner_id": owner_id.user_id},
-            )
-
-    @staticmethod
-    def can_edit(category: TransactionCategory) -> None:
-        """Можно ли редактировать категорию транзакции.
-
-        Args:
-            category (TransactionCategory): Категория, которую нужно проверить.
-
-        Raises:
-            TransactionCategoryPolicyError: Редактирование категории запрещено.
-        """
-        if category.state.is_deleted():
-            raise TransactionCategoryPolicyError(
-                msg="категория транзакции удалена",
-                data={"state": category.state.value},
+                struct_name=user.aggregate_name.name,
+                data={
+                    "user_id": str(user.user_id.user_id),
+                    "category_id": str(
+                        category.category_id.category_id,
+                    ),
+                },
             )
 
 
-class TransactionCategoryNameUniquenessService:
-    """Сервис проверки уникальности названия категории транзакции."""
+class TransactionCategoryUniquenessService:
+    """Сервис проверки уникальности названия категории транзакций."""
 
     def __init__(self, repository: TransactionCategoryRepository) -> None:
         """
         Args:
-            repository (TransactionCategoryRepository): Репозиторий категорий \
-                транзакции.
+            repository (TransactionCategoryRepository): Репозиторий для поиска \
+                существующих категорий.
         """
         self._repo = repository
 
     async def ensure_unique(
         self,
-        owner_id: UserID,
+        user: User,
         name: TransactionCategoryName,
     ) -> None:
-        """Проверка уникальности названия категории транзакции.
-
+        """
         Args:
-            owner_id (UserID): Идентификатор владельца категории.
+            user (User): Владелец категории.
             name (TransactionCategoryName): Проверяемое название категории.
 
         Raises:
-            TransactionCategoryInvalidDataError: Название категории уже занято \
-                не удаленной категорией.
+            EntityInvalidDataError: Название уже занято существующей или удаленной \
+                категорией.
         """
-        categories = await self._repo.by_owner_id_and_name(owner_id, name)
-        if any(not category.state.is_deleted() for category in categories):
-            raise TransactionCategoryInvalidDataError(
+        category = await self._repo.by_owner_id_name(user.user_id, name)
+        if category is not None:
+            if category.state.is_deleted():
+                raise EntityInvalidDataError(
+                    msg="название категории транзакции уже используется, но она была ранее удалена",
+                    struct_name=category.aggregate_name.name,
+                    data={
+                        "category_id": str(category.category_id.category_id),
+                        "name": name.name,
+                    },
+                )
+            raise EntityInvalidDataError(
                 msg="название категории транзакции уже используется",
-                data={"name": name.name},
+                struct_name=category.aggregate_name.name,
+                data={
+                    "category_id": str(category.category_id.category_id),
+                    "name": name.name,
+                },
             )

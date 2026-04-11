@@ -1,11 +1,23 @@
-from domain.entities import Entity
-from domain.user.errors import UserIdempotentError
-from domain.user.value_objects import FirstName, LastName, UserID, UserState, UserStatus
-from domain.value_objects import Version
+"""Доменная сущность пользователя."""
+
+from src.domain.entities import Entity
+from src.domain.errors import (
+    EntityIdempotentError,
+    EntityInvalidDataError,
+    EntityPolicyError,
+)
+from src.domain.user.value_objects import (
+    FirstName,
+    LastName,
+    UserID,
+    UserState,
+    UserStatus,
+)
+from src.domain.value_objects import AggregateName, Version
 
 
 class User(Entity):
-    """Агрегат пользователя."""
+    """Сущность пользователя системы."""
 
     def __init__(
         self,
@@ -21,11 +33,15 @@ class User(Entity):
             user_id (UserID): Идентификатор пользователя.
             first_name (FirstName): Имя пользователя.
             last_name (LastName): Фамилия пользователя.
-            status (UserStatus): Статус пользователя.
-            state (UserState): Состояние пользователя.
-            version (Version): Версия пользователя.
+            status (UserStatus): Текущий статус пользователя.
+            state (UserState): Текущее состояние пользователя.
+            version (Version): Версия агрегата.
         """
-        super().__init__(version)
+        super().__init__(
+            version,
+            AggregateName("пользователь"),
+            ["_user_id", "_first_name", "_last_name", "_status", "_state"],
+        )
         self._user_id = user_id
         self._first_name = first_name
         self._last_name = last_name
@@ -44,7 +60,7 @@ class User(Entity):
     def first_name(self) -> FirstName:
         """
         Returns:
-            FirstName: Имя пользователя.
+            FirstName: Текущее имя пользователя.
         """
         return self._first_name
 
@@ -52,7 +68,7 @@ class User(Entity):
     def last_name(self) -> LastName:
         """
         Returns:
-            LastName: Фамилия пользователя.
+            LastName: Текущая фамилия пользователя.
         """
         return self._last_name
 
@@ -60,7 +76,7 @@ class User(Entity):
     def status(self) -> UserStatus:
         """
         Returns:
-            UserStatus: Статус пользователя.
+            UserStatus: Текущий статус пользователя.
         """
         return self._status
 
@@ -68,114 +84,182 @@ class User(Entity):
     def state(self) -> UserState:
         """
         Returns:
-            UserState: Состояние пользователя.
+            UserState: Текущее состояние пользователя.
         """
         return self._state
 
-    def new_first_name(self, first_name: FirstName) -> None:
-        """Смена имени пользователя.
+    def raise_staff(self) -> None:
+        """
+        Raises:
+            EntityPolicyError: Пользователь не является администратором, удален \
+                или заморожен.
+        """
+        if self._state.is_deleted():
+            raise EntityPolicyError(
+                **self._error_data(
+                    "вы удалены",
+                    {"user_id": str(self._user_id.user_id), "state": self._state.value},
+                )
+            )
+        if self._state.is_frozen():
+            raise EntityPolicyError(
+                **self._error_data(
+                    "вы заморожены",
+                    {"user_id": str(self._user_id.user_id), "state": self._state.value},
+                )
+            )
+        if not self._status.is_admin():
+            raise EntityPolicyError(
+                **self._error_data(
+                    "вы не являетесь администратором",
+                    {"user_id": str(self._user_id.user_id), "state": self._state.value},
+                )
+            )
 
+    def new_first_name(self, first_name: FirstName) -> None:
+        """
         Args:
             first_name (FirstName): Новое имя пользователя.
 
         Raises:
-            UserIdempotentError: Новое имя пользователя не может совпадать с \
-                предыдущим.
+            EntityIdempotentError: Передано имя, совпадающее с текущим.
         """
+        self._check_state()
         if self._first_name == first_name:
-            raise UserIdempotentError(
-                msg="имя пользователя идентично текущему имени",
-                data={"first_name": first_name.first_name},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "имя пользователя идентично текущему имени",
+                    {
+                        "user_id": str(self._user_id.user_id),
+                        "first_name": first_name.first_name,
+                    },
+                )
             )
         self._first_name = first_name
         self._update_version()
 
     def new_last_name(self, last_name: LastName) -> None:
-        """Смена фамилии пользователя.
-
+        """
         Args:
             last_name (LastName): Новая фамилия пользователя.
 
         Raises:
-            UserIdempotentError: Новая фамилия пользователя не может совпадать с \
-                предыдущей.
+            EntityIdempotentError: Передана фамилия, совпадающая с текущей.
         """
+        self._check_state()
         if self._last_name == last_name:
-            raise UserIdempotentError(
-                msg="фамилия пользователя идентично текущему имени",
-                data={"last_name": last_name.last_name},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "фамилия пользователя идентична текущей фамилии",
+                    {
+                        "user_id": str(self._user_id.user_id),
+                        "last_name": last_name.last_name,
+                    },
+                )
             )
         self._last_name = last_name
         self._update_version()
 
     def appoint_admin(self) -> None:
-        """Назначить пользователя администратором.
-
-        Raises:
-            UserIdempotentError: Администратора нельзя повторно назначить \
-                администратором.
         """
+        Raises:
+            EntityIdempotentError: Пользователь уже имеет статус администратора.
+        """
+        self._check_state()
         if self._status.is_admin():
-            raise UserIdempotentError(
-                msg="пользователь уже является администратором",
-                data={"status": self._status.value},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "пользователь уже является администратором",
+                    {
+                        "user_id": str(self._user_id.user_id),
+                        "status": self._status.value,
+                    },
+                )
             )
         self._status = UserStatus.ADMIN
         self._update_version()
 
     def appoint_user(self) -> None:
-        """Назначить пользователя обычным пользователем.
-
-        Raises:
-            UserIdempotentError: Обычного пользователя нельзя повторно назначить \
-                обычным пользователем.
         """
+        Raises:
+            EntityIdempotentError: Пользователь уже имеет статус обычного \
+                пользователя.
+        """
+        self._check_state()
         if self._status.is_user():
-            raise UserIdempotentError(
-                msg="пользователь уже является пользователем",
-                data={"status": self._status.value},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "пользователь уже является пользователем",
+                    {
+                        "user_id": str(self._user_id.user_id),
+                        "status": self._status.value,
+                    },
+                )
             )
         self._status = UserStatus.USER
         self._update_version()
 
     def activate(self) -> None:
-        """Активировать пользователя.
-
+        """
         Raises:
-            UserIdempotentError: Активного пользователя нельзя повторно активировать.
+            EntityIdempotentError: Пользователь уже активен.
         """
         if self._state.is_active():
-            raise UserIdempotentError(
-                msg="пользователь уже является активным",
-                data={"state": self._state.value},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "пользователь уже является активным",
+                    {"user_id": str(self._user_id.user_id), "state": self._state.value},
+                )
             )
         self._state = UserState.ACTIVE
         self._update_version()
 
     def freeze(self) -> None:
-        """Заморозить пользователя.
-
+        """
         Raises:
-            UserIdempotentError: Замороженного пользователя нельзя повторно заморозить.
+            EntityIdempotentError: Пользователь уже заморожен.
         """
         if self._state.is_frozen():
-            raise UserIdempotentError(
-                msg="пользователь уже является замороженным",
-                data={"state": self._state.value},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "пользователь уже является замороженным",
+                    {"user_id": str(self._user_id.user_id), "state": self._state.value},
+                )
             )
         self._state = UserState.FROZEN
         self._update_version()
 
     def delete(self) -> None:
-        """Удалить пользователя.
-
+        """
         Raises:
-            UserIdempotentError: Удаленного пользователя нельзя повторно удалить.
+            EntityIdempotentError: Пользователь уже удален.
         """
         if self._state.is_deleted():
-            raise UserIdempotentError(
-                msg="пользователь уже является удаленным",
-                data={"state": self._state.value},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "пользователь уже является удаленным",
+                    {"user_id": str(self._user_id.user_id), "state": self._state.value},
+                )
             )
         self._state = UserState.DELETED
         self._update_version()
+
+    def _check_state(self) -> None:
+        """
+        Raises:
+            EntityInvalidDataError: Пользователь удален или заморожен.
+        """
+        if self._state.is_deleted():
+            raise EntityInvalidDataError(
+                **self._error_data(
+                    "пользователь удален",
+                    {"user_id": str(self._user_id.user_id), "state": self._state.value},
+                )
+            )
+        if self._state.is_frozen():
+            raise EntityInvalidDataError(
+                **self._error_data(
+                    "пользователь заморожен",
+                    {"user_id": str(self._user_id.user_id), "state": self._state.value},
+                )
+            )

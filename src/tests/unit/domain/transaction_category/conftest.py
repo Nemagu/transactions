@@ -1,16 +1,16 @@
 from collections.abc import Callable
+from uuid import uuid4
 
 import pytest
 
-from domain.transaction_category.entity import TransactionCategory
-from domain.transaction_category.value_objects import (
+from src.domain.transaction_category.entity import TransactionCategory
+from src.domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryID,
     TransactionCategoryName,
-    TransactionCategoryState,
 )
-from domain.user.value_objects import UserID
-from domain.value_objects import Version
+from src.domain.user.value_objects import UserID
+from src.domain.value_objects import State, Version
 
 
 @pytest.fixture
@@ -23,11 +23,11 @@ def transaction_category_factory(
         owner_id: UserID | None = None,
         name: str = "Food",
         description: str = "Daily expenses",
-        state: TransactionCategoryState = TransactionCategoryState.ACTIVE,
+        state: State = State.ACTIVE,
         version: int = 1,
     ) -> TransactionCategory:
         return TransactionCategory(
-            category_id=category_id or TransactionCategoryID(user_id_factory().user_id),
+            category_id=category_id or TransactionCategoryID(uuid4()),
             owner_id=owner_id or user_id_factory(),
             name=TransactionCategoryName(name),
             description=TransactionCategoryDescription(description),

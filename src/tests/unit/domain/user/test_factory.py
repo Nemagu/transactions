@@ -2,9 +2,9 @@ from uuid import uuid4
 
 import pytest
 
-from domain.user.errors import UserInvalidDataError
-from domain.user.factory import UserFactory
-from domain.user.value_objects import UserState, UserStatus
+from src.domain.errors import ValueObjectInvalidDataError
+from src.domain.user.factory import UserFactory
+from src.domain.user.value_objects import UserState, UserStatus
 
 
 def test_user_factory_new_creates_default_user() -> None:
@@ -41,7 +41,7 @@ def test_user_factory_restore_recreates_user_from_primitives() -> None:
 
 
 def test_user_factory_restore_raises_error_for_invalid_status() -> None:
-    with pytest.raises(UserInvalidDataError):
+    with pytest.raises(ValueObjectInvalidDataError):
         UserFactory.restore(
             user_id=uuid4(),
             first_name="Ivan",

@@ -3,27 +3,15 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from domain.user.entity import User
-from domain.user.repository import UserRepository
-from domain.user.value_objects import FirstName, LastName, UserID, UserState, UserStatus
-from domain.value_objects import Version
-
-
-class InMemoryUserRepository(UserRepository):
-    def __init__(self, users: dict[UserID, User] | None = None) -> None:
-        self._users = users or {}
-        self.saved_users: list[User] = []
-
-    def next_id(self) -> UserID:
-        return UserID(uuid4())
-
-    async def by_id(self, user_id: UserID) -> User | None:
-        return self._users.get(user_id)
-
-    async def save(self, user: User) -> None:
-        self.saved_users.append(user)
-        user.mark_persisted()
-        self._users[user.user_id] = user
+from src.domain.user.entity import User
+from src.domain.user.value_objects import (
+    FirstName,
+    LastName,
+    UserID,
+    UserState,
+    UserStatus,
+)
+from src.domain.value_objects import Version
 
 
 @pytest.fixture
@@ -55,15 +43,5 @@ def user_factory(
             state=state,
             version=Version(version),
         )
-
-    return factory
-
-
-@pytest.fixture
-def user_repository_factory() -> Callable[
-    [dict[UserID, User] | None], InMemoryUserRepository
-]:
-    def factory(users: dict[UserID, User] | None = None) -> InMemoryUserRepository:
-        return InMemoryUserRepository(users=users)
 
     return factory

@@ -4,20 +4,17 @@ from uuid import uuid4
 
 import pytest
 
-from domain.personal_transaction.errors import (
-    PersonalTransactionError,
-    PersonalTransactionInvalidDataError,
-)
-from domain.personal_transaction.value_objects import (
+from src.domain.errors import DomainError, ValueObjectInvalidDataError
+from src.domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,
     PersonalTransactionID,
     PersonalTransactionName,
-    PersonalTransactionState,
     PersonalTransactionTime,
     PersonalTransactionType,
 )
+from src.domain.value_objects import State
 
 
 def test_personal_transaction_id_keeps_uuid_value() -> None:
@@ -49,8 +46,8 @@ def test_personal_transaction_name_strips_whitespace() -> None:
 
 
 def test_personal_transaction_name_rejects_too_long_value() -> None:
-    with pytest.raises(PersonalTransactionInvalidDataError):
-        PersonalTransactionName("a" * 51)
+    with pytest.raises(ValueObjectInvalidDataError):
+        PersonalTransactionName("a" * 101)
 
 
 @pytest.mark.parametrize(
@@ -62,8 +59,8 @@ def test_personal_transaction_name_rejects_too_long_value() -> None:
         (Currency, "dollar", Currency.DOLLAR),
         (Currency, "euro", Currency.EURO),
         (Currency, "yuan", Currency.YUAN),
-        (PersonalTransactionState, "ACTIVE", PersonalTransactionState.ACTIVE),
-        (PersonalTransactionState, "deleted", PersonalTransactionState.DELETED),
+        (State, "ACTIVE", State.ACTIVE),
+        (State, "deleted", State.DELETED),
     ],
     ids=[
         "type-expense",
@@ -85,8 +82,8 @@ def test_enums_restore_from_string(enum_cls, value: str, expected) -> None:
     [
         (PersonalTransactionType.EXPENSE, "is_expense"),
         (PersonalTransactionType.INCOME, "is_income"),
-        (PersonalTransactionState.ACTIVE, "is_active"),
-        (PersonalTransactionState.DELETED, "is_deleted"),
+        (State.ACTIVE, "is_active"),
+        (State.DELETED, "is_deleted"),
     ],
     ids=["is-expense", "is-income", "is-active", "is-deleted"],
 )
@@ -99,15 +96,15 @@ def test_enum_helper_methods(enum_value, method_name: str) -> None:
     [
         (PersonalTransactionType, "transfer"),
         (Currency, "tenge"),
-        (PersonalTransactionState, "archived"),
+        (State, "archived"),
     ],
     ids=["unknown-type", "unknown-currency", "unknown-state"],
 )
 def test_enums_raise_for_unknown_string(enum_cls, value: str) -> None:
-    with pytest.raises(PersonalTransactionInvalidDataError) as exc_info:
+    with pytest.raises(ValueObjectInvalidDataError) as exc_info:
         enum_cls.from_str(value)
 
-    assert isinstance(exc_info.value, PersonalTransactionError)
+    assert isinstance(exc_info.value, DomainError)
 
 
 def test_money_amount_accepts_zero_and_positive_amount() -> None:
@@ -119,5 +116,5 @@ def test_money_amount_accepts_zero_and_positive_amount() -> None:
 
 
 def test_money_amount_rejects_negative_amount() -> None:
-    with pytest.raises(PersonalTransactionInvalidDataError):
+    with pytest.raises(ValueObjectInvalidDataError):
         MoneyAmount(amount=Decimal("-1"), currency=Currency.RUBLE)

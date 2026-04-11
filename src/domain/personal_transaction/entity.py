@@ -1,59 +1,77 @@
-from domain.entities import Entity
-from domain.personal_transaction.errors import PersonalTransactionIdempotentError
-from domain.personal_transaction.value_objects import (
+"""Доменная сущность персональной транзакции."""
+
+from src.domain.entities import EntityWithState
+from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
+from src.domain.personal_transaction.value_objects import (
     MoneyAmount,
     PersonalTransactionDescription,
     PersonalTransactionID,
     PersonalTransactionName,
-    PersonalTransactionState,
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from domain.transaction_category.value_objects import TransactionCategoryID
-from domain.user import UserID
-from domain.value_objects import Version
+from src.domain.transaction_category import TransactionCategory, TransactionCategoryID
+from src.domain.user import UserID
+from src.domain.value_objects import AggregateName, State, Version
 
 
-class PersonalTransaction(Entity):
-    """Агрегат персональной транзакции."""
+class PersonalTransaction(EntityWithState):
+    """Сущность персональной транзакции пользователя."""
 
     def __init__(
         self,
         transaction_id: PersonalTransactionID,
+        categories: set[TransactionCategory],
         owner_id: UserID,
         name: PersonalTransactionName,
         description: PersonalTransactionDescription,
-        category_ids: set[TransactionCategoryID],
         transaction_type: PersonalTransactionType,
         money_amount: MoneyAmount,
         transaction_time: PersonalTransactionTime,
-        state: PersonalTransactionState,
+        state: State,
         version: Version,
     ):
         """
         Args:
             transaction_id (PersonalTransactionID): Идентификатор транзакции.
+            categories (set[TransactionCategory]): Категории, связанные с \
+                транзакцией.
             owner_id (UserID): Идентификатор владельца транзакции.
             name (PersonalTransactionName): Название транзакции.
             description (PersonalTransactionDescription): Описание транзакции.
-            category_ids (set[TransactionCategoryID]): Идентификаторы категорий \
-                транзакции.
             transaction_type (PersonalTransactionType): Тип транзакции.
-            money_amount (MoneyAmount): Количество средств транзакции.
+            money_amount (MoneyAmount): Денежная сумма транзакции.
             transaction_time (PersonalTransactionTime): Время транзакции.
-            state (PersonalTransactionState): Состояние транзакции.
-            version (Version): Версия транзакции.
+            state (State): Состояние транзакции.
+            version (Version): Версия агрегата.
+
+        Raises:
+            EntityInvalidDataError: Среди категорий есть удаленные.
         """
-        super().__init__(version)
+        super().__init__(
+            state,
+            version,
+            AggregateName("персональная транзакция"),
+            [
+                "_transaction_id",
+                "_category_ids",
+                "_owner_id",
+                "_name",
+                "_description",
+                "_transaction_type",
+                "_money_amount",
+                "_transaction_time",
+            ],
+        )
         self._transaction_id = transaction_id
         self._owner_id = owner_id
         self._name = name
         self._description = description
-        self._category_ids = category_ids
         self._transaction_type = transaction_type
         self._money_amount = money_amount
         self._transaction_time = transaction_time
-        self._state = state
+        self._validate_categories(categories)
+        self._category_ids = set(category.category_id for category in categories)
 
     @property
     def transaction_id(self) -> PersonalTransactionID:
@@ -91,7 +109,7 @@ class PersonalTransaction(Entity):
     def category_ids(self) -> set[TransactionCategoryID]:
         """
         Returns:
-            set[TransactionCategoryID]: Идентификаторы категорий транзакции.
+            set[TransactionCategoryID]: Идентификаторы назначенных категорий.
         """
         return self._category_ids
 
@@ -107,7 +125,7 @@ class PersonalTransaction(Entity):
     def money_amount(self) -> MoneyAmount:
         """
         Returns:
-            MoneyAmount: Количество средств транзакции.
+            MoneyAmount: Денежная сумма транзакции.
         """
         return self._money_amount
 
@@ -115,113 +133,204 @@ class PersonalTransaction(Entity):
     def transaction_time(self) -> PersonalTransactionTime:
         """
         Returns:
-            PersonalTransactionTime: Время транзакции.
+            PersonalTransactionTime: Время совершения транзакции.
         """
         return self._transaction_time
 
-    @property
-    def state(self) -> PersonalTransactionState:
-        """
-        Returns:
-            PersonalTransactionState: Состояние транзакции.
-        """
-        return self._state
-
     def new_name(self, name: PersonalTransactionName) -> None:
-        """Смена названия персональной транзакции.
-
+        """
         Args:
             name (PersonalTransactionName): Новое название транзакции.
 
         Raises:
-            PersonalTransactionIdempotentError: Новое название транзакции не может \
-                совпадать с предыдущим.
+            EntityIdempotentError: Передано название, совпадающее с текущим.
         """
+        self._check_state()
         if self._name == name:
-            raise PersonalTransactionIdempotentError(
-                msg="название транзакции идентично текущему названию",
-                data={"name": name.name},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "название транзакции идентично текущему названию",
+                    {
+                        "transaction_id": str(self._transaction_id.transaction_id),
+                        "name": name.name,
+                    },
+                )
             )
         self._name = name
         self._update_version()
 
     def new_description(self, description: PersonalTransactionDescription) -> None:
-        """Смена описания персональной транзакции.
-
+        """
         Args:
-            description (PersonalTransactionDescription): Новое описание транзакции.
+            description (PersonalTransactionDescription): Новое описание \
+                транзакции.
 
         Raises:
-            PersonalTransactionIdempotentError: Новое описание транзакции не может \
-                совпадать с предыдущим.
+            EntityIdempotentError: Передано описание, совпадающее с текущим.
+            EntityInvalidDataError: Транзакция удалена.
         """
+        self._check_state()
         if self._description == description:
-            raise PersonalTransactionIdempotentError(
-                msg="описание транзакции идентично текущему описанию",
-                data={"description": description.description},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "описание транзакции идентично текущему описанию",
+                    {
+                        "transaction_id": str(self._transaction_id.transaction_id),
+                        "description": description.description,
+                    },
+                )
             )
         self._description = description
         self._update_version()
 
-    def new_category_ids(self, category_ids: set[TransactionCategoryID]) -> None:
-        """Смена категорий персональной транзакции.
-
+    def new_categories(self, categories: set[TransactionCategory]) -> None:
+        """
         Args:
-            category_ids (set[TransactionCategoryID]): Новый набор идентификаторов \
-                категорий транзакции.
+            categories (set[TransactionCategory]): Новый полный набор категорий.
 
         Raises:
-            PersonalTransactionIdempotentError: Новый набор категорий не может \
-                совпадать с предыдущим.
+            EntityIdempotentError: Передан тот же набор категорий.
+            EntityInvalidDataError: Транзакция удалена или среди категорий есть \
+                удаленные.
         """
-        if self._category_ids == category_ids:
-            raise PersonalTransactionIdempotentError(
-                msg="категории транзакции идентичны текущим категориям",
-                data={"category_ids": [category.category_id for category in category_ids]},
+        self._check_state()
+        self._validate_categories(categories)
+        if self._category_ids == set(category.category_id for category in categories):
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "категории транзакции идентичны текущим категориям",
+                    {
+                        "transaction_id": str(self._transaction_id.transaction_id),
+                        "categories": [
+                            {
+                                "category_id": str(category.category_id.category_id),
+                                "name": category.name.name,
+                            }
+                            for category in categories
+                        ],
+                    },
+                )
             )
-        self._category_ids = category_ids
+        self._category_ids = {category.category_id for category in categories}
+        self._update_version()
+
+    def add_categories(self, categories: set[TransactionCategory]) -> None:
+        """
+        Args:
+            categories (set[TransactionCategory]): Категории для добавления.
+
+        Raises:
+            EntityInvalidDataError: Транзакция удалена, среди категорий есть \
+                удаленные или все категории уже назначены.
+        """
+        self._check_state()
+        self._validate_categories(categories)
+        existing_categories = set()
+        for category in categories:
+            if category.category_id in self._category_ids:
+                existing_categories.add(category)
+        if existing_categories and len(existing_categories) == len(categories):
+            raise EntityInvalidDataError(
+                **self._error_data(
+                    "категории транзакции уже присвоены транзакции",
+                    {
+                        "transaction_id": str(self._transaction_id.transaction_id),
+                        "categories": [
+                            {
+                                "category_id": str(category.category_id.category_id),
+                                "name": category.name.name,
+                            }
+                            for category in categories
+                        ],
+                    },
+                )
+            )
+        self._category_ids.update(category.category_id for category in categories)
+        self._update_version()
+
+    def remove_categories(self, categories: set[TransactionCategory]) -> None:
+        """
+        Args:
+            categories (set[TransactionCategory]): Категории для удаления.
+
+        Raises:
+            EntityInvalidDataError: Транзакция удалена или ни одна из переданных \
+                категорий не назначена.
+        """
+        self._check_state()
+        not_existing_categories = set()
+        for category in categories:
+            if category.category_id not in self._category_ids:
+                not_existing_categories.add(category)
+        if not_existing_categories and len(not_existing_categories) == len(categories):
+            raise EntityInvalidDataError(
+                **self._error_data(
+                    "категории транзакции не присвоены транзакции",
+                    {
+                        "transaction_id": str(self._transaction_id.transaction_id),
+                        "categories": [
+                            {
+                                "category_id": str(category.category_id.category_id),
+                                "name": category.name.name,
+                            }
+                            for category in categories
+                        ],
+                    },
+                )
+            )
+        self._category_ids.difference_update(
+            category.category_id for category in categories
+        )
         self._update_version()
 
     def new_transaction_type(
         self,
         transaction_type: PersonalTransactionType,
     ) -> None:
-        """Смена типа персональной транзакции.
-
+        """
         Args:
             transaction_type (PersonalTransactionType): Новый тип транзакции.
 
         Raises:
-            PersonalTransactionIdempotentError: Новый тип транзакции не может \
-                совпадать с предыдущим.
+            EntityIdempotentError: Передан тип, совпадающий с текущим.
+            EntityInvalidDataError: Транзакция удалена.
         """
+        self._check_state()
         if self._transaction_type == transaction_type:
-            raise PersonalTransactionIdempotentError(
-                msg="тип транзакции идентичен текущему типу",
-                data={"transaction_type": transaction_type.value},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "тип транзакции идентичен текущему типу",
+                    {
+                        "transaction_id": str(self._transaction_id.transaction_id),
+                        "transaction_type": transaction_type.value,
+                    },
+                )
             )
         self._transaction_type = transaction_type
         self._update_version()
 
     def new_money_amount(self, money_amount: MoneyAmount) -> None:
-        """Смена количества средств персональной транзакции.
-
+        """
         Args:
-            money_amount (MoneyAmount): Новое количество средств транзакции.
+            money_amount (MoneyAmount): Новая денежная сумма транзакции.
 
         Raises:
-            PersonalTransactionIdempotentError: Новое количество средств не может \
-                совпадать с предыдущим.
+            EntityIdempotentError: Передана сумма, совпадающая с текущей.
+            EntityInvalidDataError: Транзакция удалена.
         """
+        self._check_state()
         if self._money_amount == money_amount:
-            raise PersonalTransactionIdempotentError(
-                msg="количество средств транзакции идентично текущему количеству",
-                data={
-                    "money_amount": {
-                        "amount": str(money_amount.amount),
-                        "currency": money_amount.currency.value,
-                    }
-                },
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "количество средств транзакции идентично текущему количеству",
+                    {
+                        "transaction_id": str(self._transaction_id.transaction_id),
+                        "money_amount": {
+                            "amount": str(money_amount.amount),
+                            "currency": money_amount.currency.value,
+                        },
+                    },
+                )
             )
         self._money_amount = money_amount
         self._update_version()
@@ -230,49 +339,62 @@ class PersonalTransaction(Entity):
         self,
         transaction_time: PersonalTransactionTime,
     ) -> None:
-        """Смена времени персональной транзакции.
-
+        """
         Args:
             transaction_time (PersonalTransactionTime): Новое время транзакции.
 
         Raises:
-            PersonalTransactionIdempotentError: Новое время транзакции не может \
-                совпадать с предыдущим.
+            EntityIdempotentError: Передано время, совпадающее с текущим.
+            EntityInvalidDataError: Транзакция удалена.
         """
+        self._check_state()
         if self._transaction_time == transaction_time:
-            raise PersonalTransactionIdempotentError(
-                msg="время транзакции идентично текущему времени",
-                data={"transaction_time": str(transaction_time.transaction_time)},
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "время транзакции идентично текущему времени",
+                    {
+                        "transaction_id": str(self._transaction_id.transaction_id),
+                        "transaction_time": str(transaction_time.transaction_time),
+                    },
+                )
             )
         self._transaction_time = transaction_time
         self._update_version()
 
-    def activate(self) -> None:
-        """Активировать персональную транзакцию.
+    def _check_state(self) -> None:
+        """
+        Raises:
+            EntityInvalidDataError: Транзакция находится в удаленном состоянии.
+        """
+        return super()._check_state(
+            "транзакция была удалена, ее редактирование запрещено",
+            {"transaction_id": str(self._transaction_id.transaction_id)},
+        )
+
+    def _validate_categories(self, categories: set[TransactionCategory]) -> None:
+        """
+        Args:
+            categories (set[TransactionCategory]): Категории для проверки.
 
         Raises:
-            PersonalTransactionIdempotentError: Активную транзакцию нельзя повторно \
-                активировать.
+            EntityInvalidDataError: Среди переданных категорий есть удаленные.
         """
-        if self._state.is_active():
-            raise PersonalTransactionIdempotentError(
-                msg="транзакция уже является активной",
-                data={"state": self._state.value},
+        error_data = list()
+        struct_name = ""
+        for category in categories:
+            if category.state.is_deleted():
+                error_data.append(
+                    {
+                        "category_id": str(category.category_id.category_id),
+                        "name": category.name.name,
+                        "state": category.state.value,
+                    }
+                )
+                if struct_name == "":
+                    struct_name = category.aggregate_name.name
+        if error_data:
+            raise EntityInvalidDataError(
+                msg="удаленные категории нельзя назначить транзакции",
+                struct_name=struct_name,
+                data={"categories": error_data},
             )
-        self._state = PersonalTransactionState.ACTIVE
-        self._update_version()
-
-    def delete(self) -> None:
-        """Удалить персональную транзакцию.
-
-        Raises:
-            PersonalTransactionIdempotentError: Удаленную транзакцию нельзя повторно \
-                удалить.
-        """
-        if self._state.is_deleted():
-            raise PersonalTransactionIdempotentError(
-                msg="транзакция уже является удаленной",
-                data={"state": self._state.value},
-            )
-        self._state = PersonalTransactionState.DELETED
-        self._update_version()

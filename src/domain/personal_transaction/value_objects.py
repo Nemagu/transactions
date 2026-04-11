@@ -1,3 +1,5 @@
+"""Объекты значения персональной транзакции."""
+
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -5,114 +7,94 @@ from enum import StrEnum
 from typing import Self
 from uuid import UUID
 
-from domain.personal_transaction.errors import PersonalTransactionInvalidDataError
+from src.domain.errors import ValueObjectInvalidDataError
 
 
 @dataclass(frozen=True)
 class PersonalTransactionID:
-    """Идентификатор персональной транзакции.
-
-    Args:
-        transaction_id (UUID): Идентификатор.
-    """
+    """Объект значения идентификатора персональной транзакции."""
 
     transaction_id: UUID
 
 
 @dataclass(frozen=True)
 class PersonalTransactionName:
-    """Название персональной транзакции.
-
-    Args:
-        name (str): Название.
-
-    Raises:
-        PersonalTransactionInvalidDataError: Название транзакции ограничено 50
-            символами.
-    """
+    """Объект значения названия персональной транзакции."""
 
     name: str
 
     def __post_init__(self) -> None:
+        """
+        Raises:
+            ValueObjectInvalidDataError: Название транзакции превышает допустимый \
+                лимит длины.
+        """
         object.__setattr__(self, "name", self.name.strip())
-        if len(self.name) > 50:
-            raise PersonalTransactionInvalidDataError(
+        if len(self.name) > 100:
+            raise ValueObjectInvalidDataError(
                 msg="название транзакции не может содержать более 100 символов",
+                struct_name="название персональной транзакции",
                 data={"name": self.name},
             )
 
 
 @dataclass(frozen=True)
 class PersonalTransactionDescription:
-    """Описание персональной транзакции.
-
-    Args:
-        description (str): Описание.
-    """
+    """Объект значения описания персональной транзакции."""
 
     description: str
 
+    def __post_init__(self) -> None:
+        """Нормализует описание транзакции, удаляя крайние пробелы."""
+        object.__setattr__(self, "description", self.description.strip())
+
 
 class PersonalTransactionType(StrEnum):
-    """Тип персональной транзакции.
-
-    Args:
-        EXPENSE: Расход.
-        INCOME: Доход.
-    """
+    """Тип движения денежных средств по транзакции."""
 
     EXPENSE = "expense"
     INCOME = "income"
 
     def is_expense(self) -> bool:
-        """Является ли транзакция расходом.
-
+        """
         Returns:
-            bool: Транзакция является расходом.
+            bool: `True`, если транзакция является расходом.
         """
         return self == self.__class__.EXPENSE
 
     def is_income(self) -> bool:
-        """Является ли транзакция доходом.
-
+        """
         Returns:
-            bool: Транзакция является доходом.
+            bool: `True`, если транзакция является доходом.
         """
         return self == self.__class__.INCOME
 
     @classmethod
     def from_str(cls, value: str) -> Self:
-        """Получение типа транзакции из строки.
-
+        """
         Args:
-            value (str): Тип в виде строки, регистр не важен.
+            value (str): Строковое представление типа транзакции.
 
         Raises:
-            PersonalTransactionInvalidDataError: Не удалось сопоставить строку.
+            ValueObjectInvalidDataError: Передано неизвестное строковое значение.
 
         Returns:
-            Self: Тип персональной транзакции.
+            Self: Найденный тип транзакции.
         """
         lower_value = value.lower()
         if lower_value in cls._value2member_map_:
             return cls(lower_value)
-        raise PersonalTransactionInvalidDataError(
+        raise ValueObjectInvalidDataError(
             msg=(
                 f'не удалось найти тип транзакции по предоставленной строке - "{value}"'
             ),
+            struct_name="тип персональной транзакции",
             data={"transaction_type": value},
         )
 
 
 class Currency(StrEnum):
-    """Валюта персональной транзакции.
-
-    Args:
-        RUBLE: Российский рубль.
-        DOLLAR: Доллар США.
-        EURO: Евро.
-        YUAN: Китайский юань.
-    """
+    """Поддерживаемые валюты персональных транзакций."""
 
     RUBLE = "ruble"
     DOLLAR = "dollar"
@@ -121,46 +103,42 @@ class Currency(StrEnum):
 
     @classmethod
     def from_str(cls, value: str) -> Self:
-        """Получение валюты из строки.
-
+        """
         Args:
-            value (str): Валюта в виде строки, регистр не важен.
+            value (str): Строковое представление валюты.
 
         Raises:
-            PersonalTransactionInvalidDataError: Не удалось сопоставить строку.
+            ValueObjectInvalidDataError: Передано неизвестное строковое значение.
 
         Returns:
-            Self: Валюта персональной транзакции.
+            Self: Найденная валюта.
         """
         lower_value = value.lower()
         if lower_value in cls._value2member_map_:
             return cls(lower_value)
-        raise PersonalTransactionInvalidDataError(
+        raise ValueObjectInvalidDataError(
             msg=(f'не удалось найти валюту по предоставленной строке - "{value}"'),
+            struct_name="валюта",
             data={"currency": value},
         )
 
 
 @dataclass(frozen=True)
 class MoneyAmount:
-    """Количество средств персональной транзакции.
-
-    Args:
-        amount (Decimal): Количество средств.
-        currency (Currency): Валюта.
-
-    Raises:
-        PersonalTransactionInvalidDataError: Количество средств должно быть больше
-            нуля.
-    """
+    """Объект значения денежной суммы транзакции."""
 
     amount: Decimal
     currency: Currency
 
     def __post_init__(self) -> None:
+        """
+        Raises:
+            ValueObjectInvalidDataError: Передана отрицательная сумма транзакции.
+        """
         if self.amount < 0:
-            raise PersonalTransactionInvalidDataError(
-                msg="количество средств не может быть равна 0 и менее",
+            raise ValueObjectInvalidDataError(
+                msg="количество средств не может быть менее 0",
+                struct_name="количество средств",
                 data={
                     "money_amount": {
                         "amount": str(self.amount),
@@ -172,61 +150,6 @@ class MoneyAmount:
 
 @dataclass(frozen=True)
 class PersonalTransactionTime:
-    """Время персональной транзакции.
-
-    Args:
-        transaction_time (datetime): Время транзакции.
-    """
+    """Объект значения времени совершения персональной транзакции."""
 
     transaction_time: datetime
-
-
-class PersonalTransactionState(StrEnum):
-    """Состояние персональной транзакции.
-
-    Args:
-        ACTIVE: Активная.
-        DELETED: Удаленная.
-    """
-
-    ACTIVE = "active"
-    DELETED = "deleted"
-
-    def is_active(self) -> bool:
-        """Является ли транзакция активной.
-
-        Returns:
-            bool: Транзакция активная.
-        """
-        return self == self.__class__.ACTIVE
-
-    def is_deleted(self) -> bool:
-        """Является ли транзакция удаленной.
-
-        Returns:
-            bool: Транзакция удалена.
-        """
-        return self == self.__class__.DELETED
-
-    @classmethod
-    def from_str(cls, value: str) -> Self:
-        """Получение состояния транзакции из строки.
-
-        Args:
-            value (str): Состояние в виде строки, регистр не важен.
-
-        Raises:
-            PersonalTransactionInvalidDataError: Не удалось сопоставить строку.
-
-        Returns:
-            Self: Состояние персональной транзакции.
-        """
-        lower_value = value.lower()
-        if lower_value in cls._value2member_map_:
-            return cls(lower_value)
-        raise PersonalTransactionInvalidDataError(
-            msg=(
-                f'не удалось найти состояние транзакции по предоставленной строке - "{value}"'
-            ),
-            data={"state": value},
-        )

@@ -1,16 +1,28 @@
+"""Контракты доступа к категориям транзакций."""
+
 from abc import ABC, abstractmethod
 
-from domain.transaction_category.entity import TransactionCategory
-from domain.transaction_category.value_objects import TransactionCategoryName
-from domain.user.value_objects import UserID
+from src.domain.transaction_category.entity import TransactionCategory
+from src.domain.transaction_category.value_objects import TransactionCategoryName
+from src.domain.user.value_objects import UserID
 
 
 class TransactionCategoryRepository(ABC):
-    """Доменный интерфейс для работы с хранилищем категорий транзакции."""
+    """Абстракция хранилища категорий транзакций."""
 
     @abstractmethod
-    async def by_owner_id_and_name(
+    async def by_owner_id_name(
         self,
         owner_id: UserID,
         name: TransactionCategoryName,
-    ) -> list[TransactionCategory]: ...
+    ) -> TransactionCategory | None:
+        """
+        Args:
+            owner_id (UserID): Идентификатор владельца категории.
+            name (TransactionCategoryName): Название категории.
+
+        Returns:
+            TransactionCategory | None: Найденная категория или `None`, если \
+                запись отсутствует.
+        """
+        ...

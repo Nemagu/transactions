@@ -1,48 +1,43 @@
+"""Фабрика создания и восстановления категорий транзакций."""
+
 from uuid import UUID
 
-from domain.transaction_category.entity import TransactionCategory
-from domain.transaction_category.value_objects import (
+from src.domain.transaction_category.entity import TransactionCategory
+from src.domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryID,
     TransactionCategoryName,
-    TransactionCategoryState,
 )
-from domain.user.value_objects import UserID
-from domain.value_objects import Version
+from src.domain.user.value_objects import UserID
+from src.domain.value_objects import State, Version
 
 
 class TransactionCategoryFactory:
-    """Фабрика создания и восстановления категории транзакции."""
+    """Фабрика для работы с агрегатом категории транзакций."""
 
     @staticmethod
     def new(
         category_id: UUID,
         owner_id: UUID,
         name: str,
-        description: str = "",
+        description: str,
     ) -> TransactionCategory:
-        """Создание новой категории транзакции.
-
+        """
         Args:
-            category_id (UUID): Идентификатор для новой категории.
+            category_id (UUID): Идентификатор категории.
             owner_id (UUID): Идентификатор владельца категории.
-            name (str): Название новой категории.
-            description (str, optional): Описание новой категории. По умолчанию \
-                пустая строка.
-
-        Raises:
-            TransactionCategoryError: Ошибки при создании объектов значений из \
-                переданных данных.
+            name (str): Название категории.
+            description (str): Описание категории.
 
         Returns:
-            TransactionCategory: Новая категория транзакции.
+            TransactionCategory: Новая активная категория транзакций.
         """
         return TransactionCategory(
             category_id=TransactionCategoryID(category_id),
             owner_id=UserID(owner_id),
             name=TransactionCategoryName(name),
             description=TransactionCategoryDescription(description),
-            state=TransactionCategoryState.ACTIVE,
+            state=State.ACTIVE,
             version=Version(1),
         )
 
@@ -55,28 +50,23 @@ class TransactionCategoryFactory:
         state: str,
         version: int,
     ) -> TransactionCategory:
-        """Восстановление категории транзакции.
-
+        """
         Args:
             category_id (UUID): Идентификатор категории.
             owner_id (UUID): Идентификатор владельца категории.
             name (str): Название категории.
             description (str): Описание категории.
-            state (str): Состояние категории.
-            version (int): Версия категории.
-
-        Raises:
-            TransactionCategoryError: Ошибки при создании объектов значений из \
-                переданных данных.
+            state (str): Состояние категории в строковом виде.
+            version (int): Версия агрегата.
 
         Returns:
-            TransactionCategory: Восстановленная категория транзакции.
+            TransactionCategory: Восстановленная категория транзакций.
         """
         return TransactionCategory(
             category_id=TransactionCategoryID(category_id),
             owner_id=UserID(owner_id),
             name=TransactionCategoryName(name),
             description=TransactionCategoryDescription(description),
-            state=TransactionCategoryState.from_str(state),
+            state=State.from_str(state),
             version=Version(version),
         )

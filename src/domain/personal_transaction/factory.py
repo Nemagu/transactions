@@ -1,71 +1,66 @@
+"""Фабрика создания и восстановления персональных транзакций."""
+
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from domain.personal_transaction.entity import PersonalTransaction
-from domain.personal_transaction.value_objects import (
+from src.domain.personal_transaction.entity import PersonalTransaction
+from src.domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,
     PersonalTransactionID,
     PersonalTransactionName,
-    PersonalTransactionState,
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from domain.transaction_category.value_objects import TransactionCategoryID
-from domain.user.value_objects import UserID
-from domain.value_objects import Version
+from src.domain.transaction_category import TransactionCategory
+from src.domain.user import UserID
+from src.domain.value_objects import State, Version
 
 
 class PersonalTransactionFactory:
-    """Фабрика создания и восстановления персональной транзакции."""
+    """Фабрика для работы с агрегатом персональной транзакции."""
 
     @staticmethod
     def new(
         transaction_id: UUID,
+        categories: set[TransactionCategory],
         owner_id: UUID,
         name: str,
-        category_ids: set[UUID],
+        description: str,
         transaction_type: str,
         amount: Decimal,
         currency: str,
         transaction_time: datetime,
-        description: str = "",
     ) -> PersonalTransaction:
-        """Создание новой персональной транзакции.
-
+        """
         Args:
-            transaction_id (UUID): Идентификатор для новой транзакции.
+            transaction_id (UUID): Идентификатор транзакции.
+            categories (set[TransactionCategory]): Категории транзакции.
             owner_id (UUID): Идентификатор владельца транзакции.
-            name (str): Название новой транзакции.
-            category_ids (set[UUID]): Идентификаторы категорий транзакции.
-            transaction_type (str): Тип новой транзакции.
-            amount (Decimal): Количество средств новой транзакции.
-            currency (str): Валюта новой транзакции.
-            transaction_time (datetime): Время новой транзакции.
-            description (str, optional): Описание новой транзакции. По умолчанию \
-                пустая строка.
-
-        Raises:
-            PersonalTransactionError: Ошибки при создании объектов значений из \
-                переданных данных.
+            name (str): Название транзакции.
+            description (str): Описание транзакции.
+            transaction_type (str): Тип транзакции в строковом виде.
+            amount (Decimal): Денежная сумма транзакции.
+            currency (str): Валюта транзакции в строковом виде.
+            transaction_time (datetime): Время совершения транзакции.
 
         Returns:
-            PersonalTransaction: Новая персональная транзакция.
+            PersonalTransaction: Новая активная персональная транзакция.
         """
         return PersonalTransaction(
             transaction_id=PersonalTransactionID(transaction_id),
+            categories=categories,
             owner_id=UserID(owner_id),
             name=PersonalTransactionName(name),
             description=PersonalTransactionDescription(description),
-            category_ids={
-                TransactionCategoryID(category_id) for category_id in category_ids
-            },
             transaction_type=PersonalTransactionType.from_str(transaction_type),
-            money_amount=MoneyAmount(amount=amount, currency=Currency.from_str(currency)),
+            money_amount=MoneyAmount(
+                amount=amount, currency=Currency.from_str(currency)
+            ),
             transaction_time=PersonalTransactionTime(transaction_time),
-            state=PersonalTransactionState.ACTIVE,
+            state=State.ACTIVE,
             version=Version(1),
         )
 
@@ -75,7 +70,7 @@ class PersonalTransactionFactory:
         owner_id: UUID,
         name: str,
         description: str,
-        category_ids: set[UUID],
+        categories: set[TransactionCategory],
         transaction_type: str,
         amount: Decimal,
         currency: str,
@@ -83,39 +78,34 @@ class PersonalTransactionFactory:
         state: str,
         version: int,
     ) -> PersonalTransaction:
-        """Восстановление персональной транзакции.
-
+        """
         Args:
             transaction_id (UUID): Идентификатор транзакции.
             owner_id (UUID): Идентификатор владельца транзакции.
             name (str): Название транзакции.
             description (str): Описание транзакции.
-            category_ids (set[UUID]): Идентификаторы категорий транзакции.
-            transaction_type (str): Тип транзакции.
-            amount (Decimal): Количество средств транзакции.
-            currency (str): Валюта транзакции.
-            transaction_time (datetime): Время транзакции.
-            state (str): Состояние транзакции.
-            version (int): Версия транзакции.
-
-        Raises:
-            PersonalTransactionError: Ошибки при создании объектов значений из \
-                переданных данных.
+            categories (set[TransactionCategory]): Категории транзакции.
+            transaction_type (str): Тип транзакции в строковом виде.
+            amount (Decimal): Денежная сумма транзакции.
+            currency (str): Валюта транзакции в строковом виде.
+            transaction_time (datetime): Время совершения транзакции.
+            state (str): Состояние транзакции в строковом виде.
+            version (int): Версия агрегата.
 
         Returns:
             PersonalTransaction: Восстановленная персональная транзакция.
         """
         return PersonalTransaction(
             transaction_id=PersonalTransactionID(transaction_id),
+            categories=categories,
             owner_id=UserID(owner_id),
             name=PersonalTransactionName(name),
             description=PersonalTransactionDescription(description),
-            category_ids={
-                TransactionCategoryID(category_id) for category_id in category_ids
-            },
             transaction_type=PersonalTransactionType.from_str(transaction_type),
-            money_amount=MoneyAmount(amount=amount, currency=Currency.from_str(currency)),
+            money_amount=MoneyAmount(
+                amount=amount, currency=Currency.from_str(currency)
+            ),
             transaction_time=PersonalTransactionTime(transaction_time),
-            state=PersonalTransactionState.from_str(state),
+            state=State.from_str(state),
             version=Version(version),
         )

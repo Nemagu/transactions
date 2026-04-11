@@ -1,40 +1,29 @@
-from domain.personal_transaction.entity import PersonalTransaction
-from domain.personal_transaction.errors import PersonalTransactionPolicyError
-from domain.user.value_objects import UserID
+"""Доменные сервисы, связанные с персональными транзакциями."""
+
+from src.domain.errors import EntityPolicyError
+from src.domain.personal_transaction.entity import PersonalTransaction
+from src.domain.user import User
 
 
 class PersonalTransactionPolicyService:
-    """Сервис проверки прав доступа для работы с персональными транзакциями."""
+    """Сервис проверки политик доступа к персональным транзакциям."""
 
     @staticmethod
-    def is_owner(user_id: UserID, owner_id: UserID) -> None:
-        """Является ли пользователь владельцем персональной транзакции.
-
+    def is_owner(user: User, transaction: PersonalTransaction) -> None:
+        """
         Args:
-            user_id (UserID): Идентификатор пользователя.
-            owner_id (UserID): Идентификатор владельца транзакции.
+            user (User): Пользователь, выполняющий действие.
+            transaction (PersonalTransaction): Целевая транзакция.
 
         Raises:
-            PersonalTransactionPolicyError: Пользователь не является владельцем.
+            EntityPolicyError: Пользователь не является владельцем транзакции.
         """
-        if user_id != owner_id:
-            raise PersonalTransactionPolicyError(
+        if user.user_id != transaction.owner_id:
+            raise EntityPolicyError(
                 msg="только владелец может работать с персональной транзакцией",
-                data={"user_id": user_id.user_id, "owner_id": owner_id.user_id},
-            )
-
-    @staticmethod
-    def can_edit(transaction: PersonalTransaction) -> None:
-        """Можно ли редактировать персональную транзакцию.
-
-        Args:
-            transaction (PersonalTransaction): Транзакция, которую нужно проверить.
-
-        Raises:
-            PersonalTransactionPolicyError: Редактирование транзакции запрещено.
-        """
-        if transaction.state.is_deleted():
-            raise PersonalTransactionPolicyError(
-                msg="персональная транзакция удалена",
-                data={"state": transaction.state.value},
+                struct_name=user.aggregate_name.name,
+                data={
+                    "user": {"user_id": str(user.user_id.user_id)},
+                    "transaction": {"owner_id": str(transaction.owner_id.user_id)},
+                },
             )

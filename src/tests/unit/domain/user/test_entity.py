@@ -1,7 +1,7 @@
 import pytest
 
-from domain.user.errors import UserIdempotentError
-from domain.user.value_objects import FirstName, LastName, UserState, UserStatus
+from src.domain.errors import EntityIdempotentError, EntityPolicyError
+from src.domain.user.value_objects import FirstName, LastName, UserState, UserStatus
 
 
 def test_user_exposes_created_state(user_factory) -> None:
@@ -57,7 +57,7 @@ def test_user_rejects_idempotent_name_changes(
 ) -> None:
     user = user_factory()
 
-    with pytest.raises(UserIdempotentError):
+    with pytest.raises(EntityIdempotentError):
         getattr(user, method_name)(value)
 
 
@@ -78,11 +78,6 @@ def test_user_changes_status(
     user = user_factory(status=initial_status)
 
     getattr(user, method_name)()
-    if method_name == "appoint_admin":
-        user.freeze()
-    else:
-        user.freeze()
-
     assert user.status == expected_status
     assert user.version.version == 2
     assert user.original_version.version == 1
@@ -103,7 +98,7 @@ def test_user_rejects_idempotent_status_changes(
 ) -> None:
     user = user_factory(status=status)
 
-    with pytest.raises(UserIdempotentError):
+    with pytest.raises(EntityIdempotentError):
         getattr(user, method_name)()
 
 
@@ -125,7 +120,6 @@ def test_user_changes_state(
     user = user_factory(state=initial_state)
 
     getattr(user, method_name)()
-    user.new_first_name(FirstName("Petr"))
 
     assert user.state == expected_state
     assert user.version.version == 2
@@ -159,5 +153,31 @@ def test_user_rejects_idempotent_state_changes(
 ) -> None:
     user = user_factory(state=state)
 
-    with pytest.raises(UserIdempotentError):
+    with pytest.raises(EntityIdempotentError):
         getattr(user, method_name)()
+
+
+@pytest.mark.parametrize(
+    ("status", "state"),
+    [
+        (UserStatus.USER, UserState.ACTIVE),
+        (UserStatus.ADMIN, UserState.FROZEN),
+        (UserStatus.ADMIN, UserState.DELETED),
+    ],
+    ids=["regular-user", "frozen-admin", "deleted-admin"],
+)
+def test_user_raise_staff_rejects_non_staff_or_unavailable_user(
+    user_factory,
+    status: UserStatus,
+    state: UserState,
+) -> None:
+    user = user_factory(status=status, state=state)
+
+    with pytest.raises(EntityPolicyError):
+        user.raise_staff()
+
+
+def test_user_raise_staff_allows_active_admin(user_factory) -> None:
+    user = user_factory(status=UserStatus.ADMIN, state=UserState.ACTIVE)
+
+    assert user.raise_staff() is None
