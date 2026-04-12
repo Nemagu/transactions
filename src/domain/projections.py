@@ -2,22 +2,21 @@ from abc import ABC
 from typing import Any
 
 from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
-from src.domain.value_objects import AggregateName, State, Version
+from src.domain.value_objects import ProjectionName, State, Version
 
 
-class Entity(ABC):
+class Projection(ABC):
     def __init__(
         self,
         version: Version,
-        aggregate_name: AggregateName,
+        projection_name: ProjectionName,
         id_private_field: str,
         main_error_field_name: str | None = None,
         extend_repr_fields: list[str] | None = None,
     ) -> None:
         self._version = version
-        self._original_version = version
-        self._aggregate_name = aggregate_name
-        self._str_fields = ["_version", "_aggregate_name"]
+        self._projection_name = projection_name
+        self._str_fields = ["_version", "_projection_name"]
         if extend_repr_fields:
             self._str_fields.extend(extend_repr_fields)
         self._id_private_field = id_private_field
@@ -32,16 +31,27 @@ class Entity(ABC):
         return self._version
 
     @property
-    def original_version(self) -> Version:
-        return self._original_version
+    def projection_name(self) -> ProjectionName:
+        return self._projection_name
 
-    @property
-    def aggregate_name(self) -> AggregateName:
-        return self._aggregate_name
-
-    def _update_version(self) -> None:
-        if self._version == self._original_version:
-            self._version = Version(self._original_version.version + 1)
+    def new_version(self, version: Version) -> None:
+        if self._version == version:
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "новая версия идентична текущей", {"version": version.version}
+                )
+            )
+        if self._version.version > version.version:
+            raise EntityInvalidDataError(
+                **self._error_data(
+                    "новая версия меньше текущей",
+                    {
+                        "new_version": version.version,
+                        "current_version": self._version.version,
+                    },
+                )
+            )
+        self._version = version
 
     def _error_data(
         self, msg: str, data: dict[str, Any] | None = None
@@ -50,12 +60,9 @@ class Entity(ABC):
         data[self._id_error_field_name] = str(getattr(self, self._id_error_field_name))
         return {
             "msg": msg,
-            "struct_name": self._aggregate_name.name,
+            "struct_name": self._projection_name.name,
             "data": {self._main_error_field_name: data},
         }
-
-    def mark_persisted(self) -> None:
-        self._original_version = self._version
 
     def __repr__(self) -> str:
         fields = ""
@@ -70,12 +77,12 @@ class Entity(ABC):
         return self.__repr__()
 
 
-class EntityWithState(Entity):
+class ProjectionWithState(Projection):
     def __init__(
         self,
         state: State,
         version: Version,
-        aggregate_name: AggregateName,
+        projection_name: ProjectionName,
         id_private_field: str,
         main_error_field_name: str | None = None,
         extend_repr_fields: list[str] | None = None,
@@ -84,7 +91,7 @@ class EntityWithState(Entity):
         extend_repr_fields.append("_state")
         super().__init__(
             version,
-            aggregate_name,
+            projection_name,
             id_private_field,
             main_error_field_name,
             extend_repr_fields,
@@ -103,32 +110,23 @@ class EntityWithState(Entity):
                 )
             )
         self._state = state
-        self._update_version()
 
     def activate(self) -> None:
         if self._state.is_active():
             raise EntityIdempotentError(
                 **self._error_data(
-                    f"{self._aggregate_name.name} уже активно",
+                    f"{self._projection_name.name} уже активно",
                     {"state": self._state.value},
                 )
             )
         self._state = self._state.__class__.ACTIVE
-        self._update_version()
 
     def delete(self) -> None:
         if self._state.is_deleted():
             raise EntityIdempotentError(
                 **self._error_data(
-                    f"{self._aggregate_name.name} уже удалено",
+                    f"{self._projection_name.name} уже удалено",
                     {"state": self._state.value},
                 )
             )
         self._state = self._state.__class__.DELETED
-        self._update_version()
-
-    def _check_state(self, msg: str, data: dict[str, Any] | None = None) -> None:
-        data = data or dict()
-        data["state"] = self._state.value
-        if self._state.is_deleted():
-            raise EntityInvalidDataError(**self._error_data(msg, data))

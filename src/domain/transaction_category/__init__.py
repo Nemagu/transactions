@@ -1,5 +1,3 @@
-"""Публичный API доменного пакета категорий транзакций."""
-
 from src.domain.transaction_category.entity import TransactionCategory
 from src.domain.transaction_category.factory import TransactionCategoryFactory
 from src.domain.transaction_category.repository import TransactionCategoryRepository
