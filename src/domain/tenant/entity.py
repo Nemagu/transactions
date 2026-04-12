@@ -89,6 +89,17 @@ class Tenant(Entity):
         self._status = TenantStatus.TENANT
         self._update_version()
 
+    def new_state(self, state: TenantState) -> None:
+        if self._state == state:
+            raise EntityIdempotentError(
+                **self._error_data(
+                    "новое состояние идентично текущему",
+                    {"state": self._state.value},
+                )
+            )
+        self._state = state
+        self._update_version()
+
     def activate(self) -> None:
         if self._state.is_active():
             raise EntityIdempotentError(

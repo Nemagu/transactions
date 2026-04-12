@@ -1,6 +1,6 @@
 import pytest
 
-from domain.errors import EntityIdempotentError, EntityInvalidDataError
+from domain.errors import EntityIdempotentError, EntityVersionLessThenCurrentError
 from domain.projections import Projection, ProjectionWithState
 from domain.value_objects import ProjectionName, State, Version
 
@@ -94,7 +94,7 @@ def test_projection_rejects_same_version() -> None:
 def test_projection_rejects_lower_version() -> None:
     projection = StubProjection(version=Version(3))
 
-    with pytest.raises(EntityInvalidDataError):
+    with pytest.raises(EntityVersionLessThenCurrentError):
         projection.new_version(Version(2))
 
 

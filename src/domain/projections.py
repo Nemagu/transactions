@@ -1,7 +1,10 @@
 from abc import ABC
 from typing import Any
 
-from domain.errors import EntityIdempotentError, EntityInvalidDataError
+from domain.errors import (
+    EntityIdempotentError,
+    EntityVersionLessThenCurrentError,
+)
 from domain.value_objects import ProjectionName, State, Version
 
 
@@ -42,7 +45,7 @@ class Projection(ABC):
                 )
             )
         if self._version.version > version.version:
-            raise EntityInvalidDataError(
+            raise EntityVersionLessThenCurrentError(
                 **self._error_data(
                     "новая версия меньше текущей",
                     {

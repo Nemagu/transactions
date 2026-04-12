@@ -92,14 +92,24 @@ def test_tenant_starts_new_version_cycle_after_persist(local_tenant_factory) -> 
     assert tenant.original_version.version == 2
 
 
+def test_tenant_new_state_changes_state(local_tenant_factory) -> None:
+    tenant = local_tenant_factory(state=TenantState.ACTIVE)
+
+    tenant.new_state(TenantState.DELETED)
+
+    assert tenant.state == TenantState.DELETED
+    assert tenant.version.version == 2
+
+
 @pytest.mark.parametrize(
     ("method_name", "state"),
     [
+        ("new_state", TenantState.ACTIVE),
         ("activate", TenantState.ACTIVE),
         ("freeze", TenantState.FROZEN),
         ("delete", TenantState.DELETED),
     ],
-    ids=["activate-active", "freeze-frozen", "delete-deleted"],
+    ids=["new-state-active", "activate-active", "freeze-frozen", "delete-deleted"],
 )
 def test_tenant_rejects_idempotent_state_changes(
     local_tenant_factory,
@@ -109,7 +119,10 @@ def test_tenant_rejects_idempotent_state_changes(
     tenant = local_tenant_factory(state=state)
 
     with pytest.raises(EntityIdempotentError):
-        getattr(tenant, method_name)()
+        if method_name == "new_state":
+            tenant.new_state(state)
+        else:
+            getattr(tenant, method_name)()
 
 
 @pytest.mark.parametrize(

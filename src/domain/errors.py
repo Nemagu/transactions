@@ -31,6 +31,10 @@ class EntityInvalidDataError(EntityError):
     pass
 
 
+class EntityVersionLessThenCurrentError(EntityError):
+    pass
+
+
 class EntityIdempotentError(EntityError):
     pass
 
