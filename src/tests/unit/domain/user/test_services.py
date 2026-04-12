@@ -31,3 +31,16 @@ async def test_user_uniqueness_rejects_existing_user(
 
     with pytest.raises(EntityAlreadyExistsError):
         await service.validate_user_id(existing_user.user_id)
+
+
+@pytest.mark.asyncio
+async def test_user_uniqueness_keeps_uuid_in_error_data(
+    user_factory,
+) -> None:
+    existing_user = user_factory()
+    service = UserUniquenessService(InMemoryUserRepository(existing_user))
+
+    with pytest.raises(EntityAlreadyExistsError) as error:
+        await service.validate_user_id(existing_user.user_id)
+
+    assert error.value.data["user"]["user_id"] == existing_user.user_id.user_id

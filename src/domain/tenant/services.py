@@ -17,8 +17,8 @@ class TenantCreationService:
                 msg="арендатор для пользователя уже существует",
                 struct_name=existing_tenant.aggregate_name.name,
                 data={
-                    "tenant": {"tenant_id": str(existing_tenant.tenant_id.tenant_id)},
-                    "user": {"user_id": str(user.user_id.user_id)},
+                    "tenant": {"tenant_id": existing_tenant.tenant_id.tenant_id},
+                    "user": {"user_id": user.user_id.user_id},
                 },
             )
         tenant = TenantFactory.new(user.user_id.user_id, user.state.value)

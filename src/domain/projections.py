@@ -57,7 +57,9 @@ class Projection(ABC):
         self, msg: str, data: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         data = data or dict()
-        data[self._id_error_field_name] = str(getattr(self, self._id_error_field_name))
+        projection_id = getattr(self, self._id_error_field_name)
+        id_value = getattr(projection_id, self._id_error_field_name, projection_id)
+        data[self._id_error_field_name] = id_value
         return {
             "msg": msg,
             "struct_name": self._projection_name.name,

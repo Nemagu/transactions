@@ -52,7 +52,7 @@ class Tenant(Entity):
                 **self._error_data(
                     "вы заморожены",
                     {
-                        "tenant_id": str(self._tenant_id.tenant_id),
+                        "tenant_id": self._tenant_id.tenant_id,
                         "state": self._state.value,
                     },
                 )

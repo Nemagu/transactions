@@ -13,12 +13,10 @@ class TransactionCategoryPolicyService:
                 msg="только владелец может работать с категорией транзакции",
                 struct_name=tenant.aggregate_name.name,
                 data={
-                    "tenant": {"tenant_id": str(tenant.tenant_id.tenant_id)},
+                    "tenant": {"tenant_id": tenant.tenant_id.tenant_id},
                     "category": {
-                        "category_id": str(
-                            category.category_id.category_id,
-                        ),
-                        "owner_id": str(category.owner_id.tenant_id),
+                        "category_id": category.category_id.category_id,
+                        "owner_id": category.owner_id.tenant_id,
                     },
                 },
             )
@@ -40,7 +38,7 @@ class TransactionCategoryUniquenessService:
                     msg="название категории транзакции уже используется, но она была ранее удалена",
                     struct_name=category.aggregate_name.name,
                     data={
-                        "category_id": str(category.category_id.category_id),
+                        "category_id": category.category_id.category_id,
                         "name": name.name,
                     },
                 )
@@ -48,7 +46,7 @@ class TransactionCategoryUniquenessService:
                 msg="название категории транзакции уже используется",
                 struct_name=category.aggregate_name.name,
                 data={
-                    "category_id": str(category.category_id.category_id),
+                    "category_id": category.category_id.category_id,
                     "name": name.name,
                 },
             )

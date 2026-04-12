@@ -11,7 +11,7 @@ class PersonalTransactionPolicyService:
                 msg="только владелец может работать с персональной транзакцией",
                 struct_name=tenant.aggregate_name.name,
                 data={
-                    "tenant": {"tenant_id": str(tenant.tenant_id.tenant_id)},
-                    "transaction": {"owner_id": str(transaction.owner_id.tenant_id)},
+                    "tenant": {"tenant_id": tenant.tenant_id.tenant_id},
+                    "transaction": {"owner_id": transaction.owner_id.tenant_id},
                 },
             )

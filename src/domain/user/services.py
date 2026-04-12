@@ -13,5 +13,5 @@ class UserUniquenessService:
             raise EntityAlreadyExistsError(
                 msg=f'пользователь с id "{existing_user.user_id.user_id}" уже существует',
                 struct_name=existing_user.projection_name.name,
-                data={"user": {"user_id": str(existing_user.user_id.user_id)}},
+                data={"user": {"user_id": existing_user.user_id.user_id}},
             )

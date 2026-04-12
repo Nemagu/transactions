@@ -117,12 +117,10 @@ class PersonalTransaction(EntityWithState):
                 msg="категории транзакции идентичны текущим категориям",
                 struct_name=self._aggregate_name.name,
                 data={
-                    "transaction": {
-                        "transaction_id": str(self._transaction_id.transaction_id)
-                    },
+                    "transaction": {"transaction_id": self._transaction_id.transaction_id},
                     "categories": [
                         {
-                            "category_id": str(category.category_id.category_id),
+                            "category_id": category.category_id.category_id,
                             "name": category.name.name,
                         }
                         for category in categories
@@ -148,12 +146,10 @@ class PersonalTransaction(EntityWithState):
                 msg="категории транзакции уже присвоены транзакции",
                 struct_name=self._aggregate_name.name,
                 data={
-                    "transaction": {
-                        "transaction_id": str(self._transaction_id.transaction_id)
-                    },
+                    "transaction": {"transaction_id": self._transaction_id.transaction_id},
                     "categories": [
                         {
-                            "category_id": str(category.category_id.category_id),
+                            "category_id": category.category_id.category_id,
                             "name": category.name.name,
                         }
                         for category in categories
@@ -178,12 +174,10 @@ class PersonalTransaction(EntityWithState):
                 msg="категории транзакции не присвоены транзакции",
                 struct_name=self._aggregate_name.name,
                 data={
-                    "transaction": {
-                        "transaction_id": str(self._transaction_id.transaction_id)
-                    },
+                    "transaction": {"transaction_id": self._transaction_id.transaction_id},
                     "categories": [
                         {
-                            "category_id": str(category.category_id.category_id),
+                            "category_id": category.category_id.category_id,
                             "name": category.name.name,
                         }
                         for category in categories
@@ -262,7 +256,7 @@ class PersonalTransaction(EntityWithState):
             if self._owner_id != category.owner_id:
                 error_data.append(
                     {
-                        "category_id": str(category.category_id.category_id),
+                        "category_id": category.category_id.category_id,
                     }
                 )
                 if struct_name == "":
@@ -283,7 +277,7 @@ class PersonalTransaction(EntityWithState):
             if category.state.is_deleted():
                 error_data.append(
                     {
-                        "category_id": str(category.category_id.category_id),
+                        "category_id": category.category_id.category_id,
                         "name": category.name.name,
                         "state": category.state.value,
                     }

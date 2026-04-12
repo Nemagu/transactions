@@ -23,8 +23,12 @@ def test_is_owner_rejects_non_owner(
     tenant = tenant_factory()
     category = transaction_category_factory()
 
-    with pytest.raises(EntityPolicyError):
+    with pytest.raises(EntityPolicyError) as error:
         TransactionCategoryPolicyService.is_owner(tenant, category)
+
+    assert error.value.data["tenant"]["tenant_id"] == tenant.tenant_id.tenant_id
+    assert error.value.data["category"]["category_id"] == category.category_id.category_id
+    assert error.value.data["category"]["owner_id"] == category.owner_id.tenant_id
 
 
 class InMemoryTransactionCategoryRepository(TransactionCategoryReadRepository):
