@@ -10,12 +10,12 @@ from domain.user import UserID
 
 
 @dataclass
-class TenantUpdatingCommand:
+class TenantUpdateCommand:
     user_id: UUID
 
 
-class TenantUpdatingUseCase(BaseUseCase):
-    async def execute(self, command: TenantUpdatingCommand) -> TenantSimpleDTO:
+class TenantUpdateUseCase(BaseUseCase):
+    async def execute(self, command: TenantUpdateCommand) -> TenantSimpleDTO:
         action_name = "обновление арендатора"
         async with self._uow as uow:
             user = await uow.user_repositories.read.by_id(UserID(command.user_id))

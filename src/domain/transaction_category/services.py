@@ -7,7 +7,7 @@ from domain.transaction_category.value_objects import TransactionCategoryName
 
 class TransactionCategoryPolicyService:
     @staticmethod
-    def is_owner(tenant: Tenant, category: TransactionCategory) -> None:
+    def raise_owner(tenant: Tenant, category: TransactionCategory) -> None:
         if tenant.tenant_id != category.owner_id:
             raise EntityPolicyError(
                 msg="только владелец может работать с категорией транзакции",
@@ -23,15 +23,15 @@ class TransactionCategoryPolicyService:
 
 
 class TransactionCategoryUniquenessService:
-    def __init__(self, repository: TransactionCategoryReadRepository) -> None:
-        self._repo = repository
+    def __init__(self, read_repository: TransactionCategoryReadRepository) -> None:
+        self._read_repo = read_repository
 
-    async def ensure_unique(
+    async def validate_name(
         self,
         tenant: Tenant,
         name: TransactionCategoryName,
     ) -> None:
-        category = await self._repo.by_owner_id_name(tenant.tenant_id, name)
+        category = await self._read_repo.by_owner_id_name(tenant.tenant_id, name)
         if category is not None:
             if category.state.is_deleted():
                 raise EntityAlreadyExistsError(

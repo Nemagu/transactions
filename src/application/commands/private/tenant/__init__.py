@@ -3,13 +3,13 @@ from application.commands.private.tenant.create import (
     TenantCreationUseCase,
 )
 from application.commands.private.tenant.update import (
-    TenantUpdatingCommand,
-    TenantUpdatingUseCase,
+    TenantUpdateCommand,
+    TenantUpdateUseCase,
 )
 
 __all__ = [
     "TenantCreationCommand",
     "TenantCreationUseCase",
-    "TenantUpdatingCommand",
-    "TenantUpdatingUseCase",
+    "TenantUpdateCommand",
+    "TenantUpdateUseCase",
 ]

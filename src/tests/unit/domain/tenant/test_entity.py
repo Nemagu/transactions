@@ -155,6 +155,54 @@ def test_tenant_raise_staff_allows_active_admin(local_tenant_factory) -> None:
 
 
 @pytest.mark.parametrize(
+    "state",
+    [TenantState.ACTIVE, TenantState.FROZEN],
+    ids=["active-tenant", "frozen-tenant"],
+)
+def test_tenant_raise_access_read_allows_available_tenant(
+    local_tenant_factory,
+    state: TenantState,
+) -> None:
+    tenant = local_tenant_factory(state=state)
+
+    assert tenant.raise_access_read() is None
+
+
+def test_tenant_raise_access_read_rejects_deleted_tenant(
+    local_tenant_factory,
+) -> None:
+    tenant = local_tenant_factory(state=TenantState.DELETED)
+
+    with pytest.raises(EntityPolicyError) as error:
+        tenant.raise_access_read()
+
+    assert error.value.data["tenant"]["state"] == TenantState.DELETED.value
+
+
+def test_tenant_raise_access_edit_allows_active_tenant(local_tenant_factory) -> None:
+    tenant = local_tenant_factory(state=TenantState.ACTIVE)
+
+    assert tenant.raise_access_edit() is None
+
+
+@pytest.mark.parametrize(
+    "state",
+    [TenantState.FROZEN, TenantState.DELETED],
+    ids=["frozen-tenant", "deleted-tenant"],
+)
+def test_tenant_raise_access_edit_rejects_unavailable_tenant(
+    local_tenant_factory,
+    state: TenantState,
+) -> None:
+    tenant = local_tenant_factory(state=state)
+
+    with pytest.raises(EntityPolicyError) as error:
+        tenant.raise_access_edit()
+
+    assert error.value.data["tenant"]["state"] == state.value
+
+
+@pytest.mark.parametrize(
     ("method_name", "state"),
     [
         ("appoint_admin", TenantState.DELETED),

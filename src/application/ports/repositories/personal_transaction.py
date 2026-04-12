@@ -5,6 +5,9 @@ from domain.personal_transaction import PersonalTransaction, PersonalTransaction
 
 class PersonalTransactionReadRepository(ABC):
     @abstractmethod
+    async def next_id(self) -> PersonalTransactionID: ...
+
+    @abstractmethod
     async def by_id(
         self, transaction_id: PersonalTransactionID
     ) -> PersonalTransaction | None: ...

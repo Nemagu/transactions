@@ -10,14 +10,14 @@ from domain.value_objects import Version
 
 
 @dataclass
-class UserUpdatingCommand:
+class UserUpdateCommand:
     user_id: UUID
     state: str
     version: int
 
 
-class UserUpdatingUseCase(BaseUseCase):
-    async def execute(self, command: UserUpdatingCommand) -> UserSimpleDTO:
+class UserUpdateUseCase(BaseUseCase):
+    async def execute(self, command: UserUpdateCommand) -> UserSimpleDTO:
         async with self._uow as uow:
             user = await uow.user_repositories.read.by_id(UserID(command.user_id))
             if user is None:

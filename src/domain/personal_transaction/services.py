@@ -5,7 +5,7 @@ from domain.tenant import Tenant
 
 class PersonalTransactionPolicyService:
     @staticmethod
-    def is_owner(tenant: Tenant, transaction: PersonalTransaction) -> None:
+    def raise_owner(tenant: Tenant, transaction: PersonalTransaction) -> None:
         if tenant.tenant_id != transaction.owner_id:
             raise EntityPolicyError(
                 msg="только владелец может работать с персональной транзакцией",

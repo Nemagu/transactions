@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from uuid import UUID
 
 from application.commands.base import BaseUseCase
@@ -8,13 +8,13 @@ from domain.tenant import TenantID
 
 
 @dataclass
-class TenantAppointingAdminCommand:
+class TenantAppointmentAdminCommand:
     initiator_id: UUID
     tenant_id: UUID
 
 
-class TenantAppointingAdminUseCase(BaseUseCase):
-    async def execute(self, command: TenantAppointingAdminCommand) -> TenantSimpleDTO:
+class TenantAppointmentAdminUseCase(BaseUseCase):
+    async def execute(self, command: TenantAppointmentAdminCommand) -> TenantSimpleDTO:
         action_name = "назначение арендатора администратором"
         async with self._uow as uow:
             initiator = await uow.tenant_repositories.read.by_id(
@@ -24,7 +24,7 @@ class TenantAppointingAdminUseCase(BaseUseCase):
                 raise AppNotFoundError(
                     msg=f"инициатор с {command.tenant_id} не существует",
                     action=action_name,
-                    data={"tenant": asdict(command)},
+                    data={"tenant": {"tenant_id": command.initiator_id}},
                 )
             initiator.raise_staff()
             tenant = await uow.tenant_repositories.read.by_id(
@@ -34,7 +34,7 @@ class TenantAppointingAdminUseCase(BaseUseCase):
                 raise AppNotFoundError(
                     msg=f"арендатор с {command.tenant_id} не существует",
                     action=action_name,
-                    data={"tenant": asdict(command)},
+                    data={"tenant": {"tenant_id": command.tenant_id}},
                 )
             tenant.appoint_admin()
             await uow.tenant_repositories.read.save(tenant)

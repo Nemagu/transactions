@@ -40,27 +40,32 @@ class Tenant(Entity):
         return self._state
 
     def raise_staff(self) -> None:
-        if self._state.is_deleted():
+        self.raise_access_edit()
+        if not self._status.is_admin():
             raise EntityPolicyError(
                 **self._error_data(
-                    "вы удалены",
+                    "вы не являетесь администратором",
                     {"state": self._state.value},
                 )
             )
+
+    def raise_access_edit(self) -> None:
+        self.raise_access_read()
         if self._state.is_frozen():
             raise EntityPolicyError(
                 **self._error_data(
                     "вы заморожены",
                     {
-                        "tenant_id": self._tenant_id.tenant_id,
                         "state": self._state.value,
                     },
                 )
             )
-        if not self._status.is_admin():
+
+    def raise_access_read(self) -> None:
+        if self._state.is_deleted():
             raise EntityPolicyError(
                 **self._error_data(
-                    "вы не являетесь администратором",
+                    "вы удалены",
                     {"state": self._state.value},
                 )
             )
