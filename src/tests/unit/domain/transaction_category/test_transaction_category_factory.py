@@ -2,9 +2,9 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.errors import ValueObjectInvalidDataError
-from src.domain.transaction_category.factory import TransactionCategoryFactory
-from src.domain.value_objects import State
+from domain.errors import ValueObjectInvalidDataError
+from domain.transaction_category.factory import TransactionCategoryFactory
+from domain.value_objects import State
 
 
 def test_transaction_category_factory_new_creates_default_category() -> None:

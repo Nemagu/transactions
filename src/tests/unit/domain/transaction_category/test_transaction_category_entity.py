@@ -1,15 +1,15 @@
 import pytest
 
-from src.domain.errors import (
+from domain.errors import (
     EntityIdempotentError,
     EntityInvalidDataError,
     ValueObjectInvalidDataError,
 )
-from src.domain.transaction_category.value_objects import (
+from domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryName,
 )
-from src.domain.value_objects import State
+from domain.value_objects import State
 
 
 def test_transaction_category_exposes_created_state(transaction_category_factory) -> None:

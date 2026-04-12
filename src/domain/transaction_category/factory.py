@@ -1,13 +1,13 @@
 from uuid import UUID
 
-from src.domain.tenant import TenantID
-from src.domain.transaction_category.entity import TransactionCategory
-from src.domain.transaction_category.value_objects import (
+from domain.tenant import TenantID
+from domain.transaction_category.entity import TransactionCategory
+from domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryID,
     TransactionCategoryName,
 )
-from src.domain.value_objects import State, Version
+from domain.value_objects import State, Version
 
 
 class TransactionCategoryFactory:

@@ -1,7 +1,7 @@
-from src.domain.errors import EntityIdempotentError
-from src.domain.projections import Projection
-from src.domain.user.value_objects import UserID, UserState
-from src.domain.value_objects import ProjectionName, Version
+from domain.errors import EntityIdempotentError
+from domain.projections import Projection
+from domain.user.value_objects import UserID, UserState
+from domain.value_objects import ProjectionName, Version
 
 
 class User(Projection):

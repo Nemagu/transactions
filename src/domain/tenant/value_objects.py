@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Self
 from uuid import UUID
 
-from src.domain.errors import ValueObjectInvalidDataError
+from domain.errors import ValueObjectInvalidDataError
 
 
 @dataclass(frozen=True)

@@ -1,8 +1,8 @@
 import pytest
 
-from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
-from src.domain.projections import Projection, ProjectionWithState
-from src.domain.value_objects import ProjectionName, State, Version
+from domain.errors import EntityIdempotentError, EntityInvalidDataError
+from domain.projections import Projection, ProjectionWithState
+from domain.value_objects import ProjectionName, State, Version
 
 
 class StubProjection(Projection):

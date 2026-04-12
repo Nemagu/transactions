@@ -4,13 +4,13 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.errors import ValueObjectInvalidDataError
-from src.domain.personal_transaction.factory import PersonalTransactionFactory
-from src.domain.personal_transaction.value_objects import (
+from domain.errors import ValueObjectInvalidDataError
+from domain.personal_transaction.factory import PersonalTransactionFactory
+from domain.personal_transaction.value_objects import (
     Currency,
     PersonalTransactionType,
 )
-from src.domain.value_objects import State
+from domain.value_objects import State
 
 
 def test_personal_transaction_factory_new_creates_default_transaction() -> None:

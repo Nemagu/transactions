@@ -1,8 +1,8 @@
 import pytest
 
-from src.domain.errors import EntityAlreadyExistsError
-from src.domain.user.repository import UserReadRepository
-from src.domain.user.services import UserUniquenessService
+from domain.errors import EntityAlreadyExistsError
+from domain.user.repository import UserReadRepository
+from domain.user.services import UserUniquenessService
 
 
 class InMemoryUserRepository(UserReadRepository):

@@ -3,11 +3,11 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.domain.tenant.entity import Tenant
-from src.domain.tenant.value_objects import TenantID, TenantState, TenantStatus
-from src.domain.user.projection import User
-from src.domain.user.value_objects import UserID, UserState
-from src.domain.value_objects import Version
+from domain.tenant.entity import Tenant
+from domain.tenant.value_objects import TenantID, TenantState, TenantStatus
+from domain.user.projection import User
+from domain.user.value_objects import UserID, UserState
+from domain.value_objects import Version
 
 
 @pytest.fixture

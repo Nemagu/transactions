@@ -1,8 +1,8 @@
 import pytest
 
-from src.domain.entities import Entity, EntityWithState
-from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
-from src.domain.value_objects import AggregateName, State, Version
+from domain.entities import Entity, EntityWithState
+from domain.errors import EntityIdempotentError, EntityInvalidDataError
+from domain.value_objects import AggregateName, State, Version
 
 
 class StubEntity(Entity):

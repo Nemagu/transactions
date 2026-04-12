@@ -1,8 +1,8 @@
 import pytest
 
-from src.domain.errors import EntityIdempotentError
-from src.domain.user.value_objects import UserState
-from src.domain.value_objects import Version
+from domain.errors import EntityIdempotentError
+from domain.user.value_objects import UserState
+from domain.value_objects import Version
 
 
 def test_user_projection_exposes_created_state(user_factory) -> None:

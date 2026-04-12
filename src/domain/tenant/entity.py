@@ -1,11 +1,11 @@
-from src.domain.entities import Entity
-from src.domain.errors import (
+from domain.entities import Entity
+from domain.errors import (
     EntityIdempotentError,
     EntityInvalidDataError,
     EntityPolicyError,
 )
-from src.domain.tenant.value_objects import TenantID, TenantState, TenantStatus
-from src.domain.value_objects import AggregateName, Version
+from domain.tenant.value_objects import TenantID, TenantState, TenantStatus
+from domain.value_objects import AggregateName, Version
 
 
 class Tenant(Entity):

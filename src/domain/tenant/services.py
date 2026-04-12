@@ -1,9 +1,9 @@
-from src.domain.errors import EntityAlreadyExistsError
-from src.domain.tenant import Tenant
-from src.domain.tenant.factory import TenantFactory
-from src.domain.tenant.repository import TenantReadRepository
-from src.domain.tenant.value_objects import TenantID
-from src.domain.user import User
+from domain.errors import EntityAlreadyExistsError
+from domain.tenant import Tenant
+from domain.tenant.factory import TenantFactory
+from domain.tenant.repository import TenantReadRepository
+from domain.tenant.value_objects import TenantID
+from domain.user import User
 
 
 class TenantCreationService:

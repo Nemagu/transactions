@@ -1,6 +1,6 @@
-from src.domain.errors import EntityPolicyError
-from src.domain.personal_transaction.entity import PersonalTransaction
-from src.domain.tenant import Tenant
+from domain.errors import EntityPolicyError
+from domain.personal_transaction.entity import PersonalTransaction
+from domain.tenant import Tenant
 
 
 class PersonalTransactionPolicyService:

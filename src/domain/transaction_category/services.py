@@ -1,8 +1,8 @@
-from src.domain.errors import EntityAlreadyExistsError, EntityPolicyError
-from src.domain.tenant import Tenant
-from src.domain.transaction_category.entity import TransactionCategory
-from src.domain.transaction_category.repository import TransactionCategoryRepository
-from src.domain.transaction_category.value_objects import TransactionCategoryName
+from domain.errors import EntityAlreadyExistsError, EntityPolicyError
+from domain.tenant import Tenant
+from domain.transaction_category.entity import TransactionCategory
+from domain.transaction_category.repository import TransactionCategoryReadRepository
+from domain.transaction_category.value_objects import TransactionCategoryName
 
 
 class TransactionCategoryPolicyService:
@@ -25,7 +25,7 @@ class TransactionCategoryPolicyService:
 
 
 class TransactionCategoryUniquenessService:
-    def __init__(self, repository: TransactionCategoryRepository) -> None:
+    def __init__(self, repository: TransactionCategoryReadRepository) -> None:
         self._repo = repository
 
     async def ensure_unique(

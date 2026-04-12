@@ -3,8 +3,8 @@ from decimal import Decimal
 
 import pytest
 
-from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
-from src.domain.personal_transaction.value_objects import (
+from domain.errors import EntityIdempotentError, EntityInvalidDataError
+from domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,
@@ -12,7 +12,7 @@ from src.domain.personal_transaction.value_objects import (
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from src.domain.value_objects import State
+from domain.value_objects import State
 
 
 def test_personal_transaction_exposes_created_state(personal_transaction_factory) -> None:

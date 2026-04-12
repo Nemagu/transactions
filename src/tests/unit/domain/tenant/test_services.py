@@ -1,9 +1,9 @@
 import pytest
 
-from src.domain.errors import EntityAlreadyExistsError
-from src.domain.tenant.repository import TenantReadRepository
-from src.domain.tenant.services import TenantCreationService
-from src.domain.tenant.value_objects import TenantID
+from domain.errors import EntityAlreadyExistsError
+from domain.tenant.repository import TenantReadRepository
+from domain.tenant.services import TenantCreationService
+from domain.tenant.value_objects import TenantID
 
 
 class InMemoryTenantRepository(TenantReadRepository):

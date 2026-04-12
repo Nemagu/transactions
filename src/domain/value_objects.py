@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Self
 
-from src.domain.errors import ValueObjectInvalidDataError
+from domain.errors import ValueObjectInvalidDataError
 
 
 @dataclass(frozen=True)

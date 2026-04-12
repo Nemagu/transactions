@@ -1,12 +1,12 @@
-from src.domain.entities import EntityWithState
-from src.domain.errors import EntityIdempotentError
-from src.domain.tenant import TenantID
-from src.domain.transaction_category.value_objects import (
+from domain.entities import EntityWithState
+from domain.errors import EntityIdempotentError
+from domain.tenant import TenantID
+from domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryID,
     TransactionCategoryName,
 )
-from src.domain.value_objects import AggregateName, State, Version
+from domain.value_objects import AggregateName, State, Version
 
 
 class TransactionCategory(EntityWithState):

@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from src.domain.tenant.entity import Tenant
-from src.domain.tenant.value_objects import TenantID, TenantState, TenantStatus
-from src.domain.value_objects import Version
+from domain.tenant.entity import Tenant
+from domain.tenant.value_objects import TenantID, TenantState, TenantStatus
+from domain.value_objects import Version
 
 
 class TenantFactory:

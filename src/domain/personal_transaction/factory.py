@@ -2,8 +2,8 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from src.domain.personal_transaction.entity import PersonalTransaction
-from src.domain.personal_transaction.value_objects import (
+from domain.personal_transaction.entity import PersonalTransaction
+from domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,
@@ -12,9 +12,9 @@ from src.domain.personal_transaction.value_objects import (
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from src.domain.tenant import TenantID
-from src.domain.transaction_category import TransactionCategoryID
-from src.domain.value_objects import State, Version
+from domain.tenant import TenantID
+from domain.transaction_category import TransactionCategoryID
+from domain.value_objects import State, Version
 
 
 class PersonalTransactionFactory:

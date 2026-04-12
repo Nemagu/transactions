@@ -2,9 +2,9 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.errors import ValueObjectInvalidDataError
-from src.domain.user.factory import UserFactory
-from src.domain.user.value_objects import UserState
+from domain.errors import ValueObjectInvalidDataError
+from domain.user.factory import UserFactory
+from domain.user.value_objects import UserState
 
 
 def test_user_factory_new_creates_projection() -> None:

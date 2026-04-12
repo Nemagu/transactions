@@ -1,8 +1,8 @@
 from abc import ABC
 from typing import Any
 
-from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
-from src.domain.value_objects import ProjectionName, State, Version
+from domain.errors import EntityIdempotentError, EntityInvalidDataError
+from domain.value_objects import ProjectionName, State, Version
 
 
 class Projection(ABC):

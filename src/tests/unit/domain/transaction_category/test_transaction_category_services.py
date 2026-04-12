@@ -1,13 +1,13 @@
 import pytest
 
-from src.domain.errors import EntityAlreadyExistsError, EntityPolicyError
-from src.domain.transaction_category.repository import TransactionCategoryRepository
-from src.domain.transaction_category.services import (
+from domain.errors import EntityAlreadyExistsError, EntityPolicyError
+from domain.transaction_category.repository import TransactionCategoryReadRepository
+from domain.transaction_category.services import (
     TransactionCategoryPolicyService,
     TransactionCategoryUniquenessService,
 )
-from src.domain.transaction_category.value_objects import TransactionCategoryName
-from src.domain.value_objects import State
+from domain.transaction_category.value_objects import TransactionCategoryName
+from domain.value_objects import State
 
 
 def test_is_owner_allows_owner(tenant_factory, transaction_category_factory) -> None:
@@ -17,7 +17,9 @@ def test_is_owner_allows_owner(tenant_factory, transaction_category_factory) -> 
     assert TransactionCategoryPolicyService.is_owner(tenant, category) is None
 
 
-def test_is_owner_rejects_non_owner(tenant_factory, transaction_category_factory) -> None:
+def test_is_owner_rejects_non_owner(
+    tenant_factory, transaction_category_factory
+) -> None:
     tenant = tenant_factory()
     category = transaction_category_factory()
 
@@ -25,7 +27,7 @@ def test_is_owner_rejects_non_owner(tenant_factory, transaction_category_factory
         TransactionCategoryPolicyService.is_owner(tenant, category)
 
 
-class InMemoryTransactionCategoryRepository(TransactionCategoryRepository):
+class InMemoryTransactionCategoryRepository(TransactionCategoryReadRepository):
     def __init__(self, categories) -> None:
         self._categories = categories
 

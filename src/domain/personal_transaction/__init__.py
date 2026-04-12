@@ -1,7 +1,7 @@
-from src.domain.personal_transaction.entity import PersonalTransaction
-from src.domain.personal_transaction.factory import PersonalTransactionFactory
-from src.domain.personal_transaction.services import PersonalTransactionPolicyService
-from src.domain.personal_transaction.value_objects import (
+from domain.personal_transaction.entity import PersonalTransaction
+from domain.personal_transaction.factory import PersonalTransactionFactory
+from domain.personal_transaction.services import PersonalTransactionPolicyService
+from domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,

@@ -1,6 +1,6 @@
-from src.domain.entities import EntityWithState
-from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
-from src.domain.personal_transaction.value_objects import (
+from domain.entities import EntityWithState
+from domain.errors import EntityIdempotentError, EntityInvalidDataError
+from domain.personal_transaction.value_objects import (
     MoneyAmount,
     PersonalTransactionDescription,
     PersonalTransactionID,
@@ -8,9 +8,9 @@ from src.domain.personal_transaction.value_objects import (
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from src.domain.tenant import TenantID
-from src.domain.transaction_category import TransactionCategory, TransactionCategoryID
-from src.domain.value_objects import AggregateName, State, Version
+from domain.tenant import TenantID
+from domain.transaction_category import TransactionCategory, TransactionCategoryID
+from domain.value_objects import AggregateName, State, Version
 
 
 class PersonalTransaction(EntityWithState):

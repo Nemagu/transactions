@@ -2,8 +2,8 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.errors import DomainError, ValueObjectInvalidDataError
-from src.domain.user.value_objects import UserID, UserState
+from domain.errors import DomainError, ValueObjectInvalidDataError
+from domain.user.value_objects import UserID, UserState
 
 
 def test_user_id_keeps_uuid_value() -> None:

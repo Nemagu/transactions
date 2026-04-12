@@ -2,9 +2,9 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.errors import ValueObjectInvalidDataError
-from src.domain.tenant.factory import TenantFactory
-from src.domain.tenant.value_objects import TenantState, TenantStatus
+from domain.errors import ValueObjectInvalidDataError
+from domain.tenant.factory import TenantFactory
+from domain.tenant.value_objects import TenantState, TenantStatus
 
 
 def test_tenant_factory_new_creates_default_tenant() -> None:

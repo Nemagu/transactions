@@ -2,8 +2,8 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.errors import DomainError, ValueObjectInvalidDataError
-from src.domain.tenant.value_objects import TenantID, TenantState, TenantStatus
+from domain.errors import DomainError, ValueObjectInvalidDataError
+from domain.tenant.value_objects import TenantID, TenantState, TenantStatus
 
 
 def test_tenant_id_keeps_uuid_value() -> None:

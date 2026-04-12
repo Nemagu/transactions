@@ -1,6 +1,6 @@
 import pytest
 
-from src.domain.tenant.repository import TenantReadRepository
+from domain.tenant.repository import TenantReadRepository
 
 
 def test_tenant_repository_requires_by_id_implementation() -> None:

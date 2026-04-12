@@ -1,7 +1,7 @@
 import pytest
 
-from src.domain.errors import EntityPolicyError
-from src.domain.personal_transaction.services import PersonalTransactionPolicyService
+from domain.errors import EntityPolicyError
+from domain.personal_transaction.services import PersonalTransactionPolicyService
 
 
 def test_is_owner_allows_owner(tenant_factory, personal_transaction_factory) -> None:

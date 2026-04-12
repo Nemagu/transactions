@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from src.domain.user.projection import User
-from src.domain.user.value_objects import UserID, UserState
-from src.domain.value_objects import Version
+from domain.user.projection import User
+from domain.user.value_objects import UserID, UserState
+from domain.value_objects import Version
 
 
 class UserFactory:

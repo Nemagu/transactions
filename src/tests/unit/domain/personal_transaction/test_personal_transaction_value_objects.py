@@ -4,8 +4,8 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.errors import DomainError, ValueObjectInvalidDataError
-from src.domain.personal_transaction.value_objects import (
+from domain.errors import DomainError, ValueObjectInvalidDataError
+from domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,

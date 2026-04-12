@@ -1,6 +1,6 @@
 import pytest
 
-from src.domain.user.repository import UserReadRepository
+from domain.user.repository import UserReadRepository
 
 
 def test_user_repository_requires_by_id_implementation() -> None:

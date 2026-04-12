@@ -1,6 +1,6 @@
-from src.domain.errors import EntityAlreadyExistsError
-from src.domain.user.repository import UserReadRepository
-from src.domain.user.value_objects import UserID
+from domain.errors import EntityAlreadyExistsError
+from domain.user.repository import UserReadRepository
+from domain.user.value_objects import UserID
 
 
 class UserUniquenessService:

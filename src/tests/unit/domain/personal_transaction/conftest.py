@@ -5,8 +5,8 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.personal_transaction.entity import PersonalTransaction
-from src.domain.personal_transaction.value_objects import (
+from domain.personal_transaction.entity import PersonalTransaction
+from domain.personal_transaction.value_objects import (
     Currency,
     MoneyAmount,
     PersonalTransactionDescription,
@@ -15,14 +15,14 @@ from src.domain.personal_transaction.value_objects import (
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from src.domain.tenant.value_objects import TenantID
-from src.domain.transaction_category.entity import TransactionCategory
-from src.domain.transaction_category.value_objects import (
+from domain.tenant.value_objects import TenantID
+from domain.transaction_category.entity import TransactionCategory
+from domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryID,
     TransactionCategoryName,
 )
-from src.domain.value_objects import State, Version
+from domain.value_objects import State, Version
 
 
 @pytest.fixture

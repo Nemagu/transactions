@@ -1,11 +1,11 @@
 import pytest
 
-from src.domain.errors import (
+from domain.errors import (
     EntityIdempotentError,
     EntityInvalidDataError,
     EntityPolicyError,
 )
-from src.domain.tenant.value_objects import TenantState, TenantStatus
+from domain.tenant.value_objects import TenantState, TenantStatus
 
 
 def test_tenant_exposes_created_state(local_tenant_factory) -> None:

@@ -1,7 +1,7 @@
 import pytest
 
-from src.domain.errors import ValueObjectInvalidDataError
-from src.domain.value_objects import AggregateName, ProjectionName, State, Version
+from domain.errors import ValueObjectInvalidDataError
+from domain.value_objects import AggregateName, ProjectionName, State, Version
 
 
 def test_version_accepts_positive_number() -> None:

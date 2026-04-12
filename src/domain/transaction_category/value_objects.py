@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.domain.errors import ValueObjectInvalidDataError
+from domain.errors import ValueObjectInvalidDataError
 
 
 @dataclass(frozen=True)
