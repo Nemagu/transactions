@@ -1,6 +1,6 @@
 import pytest
 
-from src.domain.errors import EntityInvalidDataError, EntityPolicyError
+from src.domain.errors import EntityAlreadyExistsError, EntityPolicyError
 from src.domain.transaction_category.repository import TransactionCategoryRepository
 from src.domain.transaction_category.services import (
     TransactionCategoryPolicyService,
@@ -10,22 +10,19 @@ from src.domain.transaction_category.value_objects import TransactionCategoryNam
 from src.domain.value_objects import State
 
 
-def test_is_owner_allows_owner(user_factory, transaction_category_factory) -> None:
-    user = user_factory()
-    category = transaction_category_factory(owner_id=user.user_id)
+def test_is_owner_allows_owner(tenant_factory, transaction_category_factory) -> None:
+    tenant = tenant_factory()
+    category = transaction_category_factory(owner_id=tenant.tenant_id)
 
-    assert TransactionCategoryPolicyService.is_owner(user, category) is None
+    assert TransactionCategoryPolicyService.is_owner(tenant, category) is None
 
 
-def test_is_owner_rejects_non_owner(user_factory, transaction_category_factory) -> None:
-    user = user_factory()
+def test_is_owner_rejects_non_owner(tenant_factory, transaction_category_factory) -> None:
+    tenant = tenant_factory()
     category = transaction_category_factory()
 
     with pytest.raises(EntityPolicyError):
-        TransactionCategoryPolicyService.is_owner(
-            user,
-            category,
-        )
+        TransactionCategoryPolicyService.is_owner(tenant, category)
 
 
 class InMemoryTransactionCategoryRepository(TransactionCategoryRepository):
@@ -39,33 +36,29 @@ class InMemoryTransactionCategoryRepository(TransactionCategoryRepository):
         return None
 
 
+@pytest.mark.asyncio
 async def test_name_uniqueness_allows_when_name_is_free(
-    user_factory,
+    tenant_factory,
 ) -> None:
     service = TransactionCategoryUniquenessService(
         InMemoryTransactionCategoryRepository([]),
     )
-    user = user_factory()
+    tenant = tenant_factory()
 
-    assert (
-        await service.ensure_unique(
-            user,
-            TransactionCategoryName("Food"),
-        )
-        is None
-    )
+    assert await service.ensure_unique(tenant, TransactionCategoryName("Food")) is None
 
 
+@pytest.mark.asyncio
 async def test_name_uniqueness_rejects_when_only_deleted_categories_exist(
-    user_factory,
+    tenant_factory,
     transaction_category_factory,
 ) -> None:
-    user = user_factory()
+    tenant = tenant_factory()
     service = TransactionCategoryUniquenessService(
         InMemoryTransactionCategoryRepository(
             [
                 transaction_category_factory(
-                    owner_id=user.user_id,
+                    owner_id=tenant.tenant_id,
                     name="Food",
                     state=State.DELETED,
                 ),
@@ -73,31 +66,26 @@ async def test_name_uniqueness_rejects_when_only_deleted_categories_exist(
         ),
     )
 
-    with pytest.raises(EntityInvalidDataError):
-        await service.ensure_unique(
-            user,
-            TransactionCategoryName("Food"),
-        )
+    with pytest.raises(EntityAlreadyExistsError):
+        await service.ensure_unique(tenant, TransactionCategoryName("Food"))
 
 
+@pytest.mark.asyncio
 async def test_name_uniqueness_rejects_when_active_category_exists(
-    user_factory,
+    tenant_factory,
     transaction_category_factory,
 ) -> None:
-    user = user_factory()
+    tenant = tenant_factory()
     service = TransactionCategoryUniquenessService(
         InMemoryTransactionCategoryRepository(
             [
                 transaction_category_factory(
-                    owner_id=user.user_id,
+                    owner_id=tenant.tenant_id,
                     name="Food",
                 ),
             ],
         ),
     )
 
-    with pytest.raises(EntityInvalidDataError):
-        await service.ensure_unique(
-            user,
-            TransactionCategoryName("Food"),
-        )
+    with pytest.raises(EntityAlreadyExistsError):
+        await service.ensure_unique(tenant, TransactionCategoryName("Food"))

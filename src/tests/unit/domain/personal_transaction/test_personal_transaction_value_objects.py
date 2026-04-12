@@ -14,7 +14,6 @@ from src.domain.personal_transaction.value_objects import (
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from src.domain.value_objects import State
 
 
 def test_personal_transaction_id_keeps_uuid_value() -> None:
@@ -59,8 +58,6 @@ def test_personal_transaction_name_rejects_too_long_value() -> None:
         (Currency, "dollar", Currency.DOLLAR),
         (Currency, "euro", Currency.EURO),
         (Currency, "yuan", Currency.YUAN),
-        (State, "ACTIVE", State.ACTIVE),
-        (State, "deleted", State.DELETED),
     ],
     ids=[
         "type-expense",
@@ -69,8 +66,6 @@ def test_personal_transaction_name_rejects_too_long_value() -> None:
         "currency-dollar",
         "currency-euro",
         "currency-yuan",
-        "state-active",
-        "state-deleted",
     ],
 )
 def test_enums_restore_from_string(enum_cls, value: str, expected) -> None:
@@ -82,10 +77,8 @@ def test_enums_restore_from_string(enum_cls, value: str, expected) -> None:
     [
         (PersonalTransactionType.EXPENSE, "is_expense"),
         (PersonalTransactionType.INCOME, "is_income"),
-        (State.ACTIVE, "is_active"),
-        (State.DELETED, "is_deleted"),
     ],
-    ids=["is-expense", "is-income", "is-active", "is-deleted"],
+    ids=["is-expense", "is-income"],
 )
 def test_enum_helper_methods(enum_value, method_name: str) -> None:
     assert getattr(enum_value, method_name)() is True
@@ -96,9 +89,8 @@ def test_enum_helper_methods(enum_value, method_name: str) -> None:
     [
         (PersonalTransactionType, "transfer"),
         (Currency, "tenge"),
-        (State, "archived"),
     ],
-    ids=["unknown-type", "unknown-currency", "unknown-state"],
+    ids=["unknown-type", "unknown-currency"],
 )
 def test_enums_raise_for_unknown_string(enum_cls, value: str) -> None:
     with pytest.raises(ValueObjectInvalidDataError) as exc_info:

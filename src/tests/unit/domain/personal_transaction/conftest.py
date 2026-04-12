@@ -15,31 +15,28 @@ from src.domain.personal_transaction.value_objects import (
     PersonalTransactionTime,
     PersonalTransactionType,
 )
+from src.domain.tenant.value_objects import TenantID
 from src.domain.transaction_category.entity import TransactionCategory
 from src.domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryID,
     TransactionCategoryName,
 )
-from src.domain.user.value_objects import UserID
 from src.domain.value_objects import State, Version
 
 
 @pytest.fixture
-def transaction_category_set_factory(
-    user_id_factory: Callable[..., UserID],
-) -> Callable[..., set[TransactionCategory]]:
+def transaction_category_set_factory() -> Callable[..., set[TransactionCategory]]:
     def factory(
         *,
-        owner_id: UserID | None = None,
+        owner_id: TenantID,
         names: tuple[str, ...] = ("Food",),
         state: State = State.ACTIVE,
     ) -> set[TransactionCategory]:
-        category_owner_id = owner_id or user_id_factory()
         return {
             TransactionCategory(
                 category_id=TransactionCategoryID(uuid4()),
-                owner_id=category_owner_id,
+                owner_id=owner_id,
                 name=TransactionCategoryName(name),
                 description=TransactionCategoryDescription(f"{name} description"),
                 state=state,
@@ -53,14 +50,14 @@ def transaction_category_set_factory(
 
 @pytest.fixture
 def personal_transaction_factory(
-    user_id_factory: Callable[..., UserID],
+    tenant_id_factory: Callable[..., TenantID],
     transaction_category_set_factory: Callable[..., set[TransactionCategory]],
 ) -> Callable[..., PersonalTransaction]:
     def factory(
         *,
         transaction_id: PersonalTransactionID | None = None,
-        categories: set[TransactionCategory] | None = None,
-        owner_id: UserID | None = None,
+        category_ids: set[TransactionCategoryID] | None = None,
+        owner_id: TenantID | None = None,
         name: str = "Coffee",
         description: str = "Morning coffee",
         transaction_type: PersonalTransactionType = PersonalTransactionType.EXPENSE,
@@ -69,11 +66,14 @@ def personal_transaction_factory(
         state: State = State.ACTIVE,
         version: int = 1,
     ) -> PersonalTransaction:
-        transaction_owner_id = owner_id or user_id_factory()
+        transaction_owner_id = owner_id or tenant_id_factory()
+        ids = category_ids
+        if ids is None:
+            categories = transaction_category_set_factory(owner_id=transaction_owner_id)
+            ids = {category.category_id for category in categories}
         return PersonalTransaction(
             transaction_id=transaction_id or PersonalTransactionID(uuid4()),
-            categories=categories
-            or transaction_category_set_factory(owner_id=transaction_owner_id),
+            category_ids=ids,
             owner_id=transaction_owner_id,
             name=PersonalTransactionName(name),
             description=PersonalTransactionDescription(description),

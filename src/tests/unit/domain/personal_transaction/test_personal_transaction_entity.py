@@ -22,7 +22,9 @@ def test_personal_transaction_exposes_created_state(personal_transaction_factory
     assert transaction.description == PersonalTransactionDescription("Morning coffee")
     assert transaction.transaction_type == PersonalTransactionType.EXPENSE
     assert transaction.money_amount == MoneyAmount(Decimal("100"), Currency.RUBLE)
-    assert transaction.transaction_time == PersonalTransactionTime(datetime(2026, 4, 5, 12, 0, 0))
+    assert transaction.transaction_time == PersonalTransactionTime(
+        datetime(2026, 4, 5, 12, 0, 0)
+    )
     assert transaction.state == State.ACTIVE
     assert transaction.version.version == 1
     assert transaction.original_version.version == 1
@@ -69,9 +71,14 @@ def test_personal_transaction_updates_fields_once_per_cycle(
 def test_personal_transaction_updates_categories_once_per_cycle(
     personal_transaction_factory,
     transaction_category_set_factory,
+    tenant_id_factory,
 ) -> None:
-    transaction = personal_transaction_factory()
-    categories = transaction_category_set_factory(names=("Taxi", "Transport"))
+    owner_id = tenant_id_factory()
+    transaction = personal_transaction_factory(owner_id=owner_id, category_ids=set())
+    categories = transaction_category_set_factory(
+        owner_id=owner_id,
+        names=("Taxi", "Transport"),
+    )
 
     transaction.new_categories(categories)
 
@@ -111,15 +118,16 @@ def test_personal_transaction_rejects_idempotent_field_changes(
 def test_personal_transaction_rejects_idempotent_categories_change(
     personal_transaction_factory,
     transaction_category_set_factory,
+    tenant_id_factory,
 ) -> None:
-    categories = transaction_category_set_factory(names=("Food",))
-    category_owner_id = next(iter(categories)).owner_id
+    owner_id = tenant_id_factory()
+    categories = transaction_category_set_factory(owner_id=owner_id, names=("Food",))
     transaction = personal_transaction_factory(
-        owner_id=category_owner_id,
-        categories=categories,
+        owner_id=owner_id,
+        category_ids={category.category_id for category in categories},
     )
 
-    with pytest.raises(EntityIdempotentError):
+    with pytest.raises(EntityInvalidDataError):
         transaction.new_categories(categories)
 
 
@@ -202,21 +210,23 @@ def test_personal_transaction_starts_new_version_cycle_after_persist(
 def test_personal_transaction_rejects_changes_when_deleted(
     personal_transaction_factory,
     transaction_category_set_factory,
+    tenant_id_factory,
     method_name: str,
 ) -> None:
-    transaction = personal_transaction_factory(state=State.DELETED)
+    owner_id = tenant_id_factory()
+    transaction = personal_transaction_factory(state=State.DELETED, owner_id=owner_id)
     value_map = {
         "new_description": PersonalTransactionDescription("Ride to office"),
         "new_categories": transaction_category_set_factory(
-            owner_id=transaction.owner_id,
+            owner_id=owner_id,
             names=("Taxi", "Office"),
         ),
         "add_categories": transaction_category_set_factory(
-            owner_id=transaction.owner_id,
+            owner_id=owner_id,
             names=("Taxi",),
         ),
         "remove_categories": transaction_category_set_factory(
-            owner_id=transaction.owner_id,
+            owner_id=owner_id,
             names=("Food",),
         ),
         "new_transaction_type": PersonalTransactionType.INCOME,
@@ -231,3 +241,150 @@ def test_personal_transaction_rejects_changes_when_deleted(
 
     with pytest.raises(EntityInvalidDataError):
         getattr(transaction, method_name)(value_map[method_name])
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    ["add_categories", "remove_categories"],
+    ids=["add-empty", "remove-empty"],
+)
+def test_personal_transaction_rejects_empty_categories_operations(
+    personal_transaction_factory,
+    method_name: str,
+) -> None:
+    transaction = personal_transaction_factory()
+
+    with pytest.raises(EntityInvalidDataError):
+        getattr(transaction, method_name)(set())
+
+
+def test_personal_transaction_rejects_foreign_categories(
+    personal_transaction_factory,
+    transaction_category_set_factory,
+    tenant_id_factory,
+) -> None:
+    transaction_owner_id = tenant_id_factory()
+    category_owner_id = tenant_id_factory()
+    transaction = personal_transaction_factory(
+        owner_id=transaction_owner_id,
+        category_ids=set(),
+    )
+    categories = transaction_category_set_factory(
+        owner_id=category_owner_id,
+        names=("Taxi",),
+    )
+
+    with pytest.raises(EntityInvalidDataError):
+        transaction.add_categories(categories)
+
+
+def test_personal_transaction_rejects_deleted_categories(
+    personal_transaction_factory,
+    transaction_category_set_factory,
+    tenant_id_factory,
+) -> None:
+    owner_id = tenant_id_factory()
+    transaction = personal_transaction_factory(owner_id=owner_id, category_ids=set())
+    categories = transaction_category_set_factory(
+        owner_id=owner_id,
+        names=("Taxi",),
+        state=State.DELETED,
+    )
+
+    with pytest.raises(EntityInvalidDataError):
+        transaction.add_categories(categories)
+
+
+def test_personal_transaction_adds_only_missing_categories(
+    personal_transaction_factory,
+    transaction_category_set_factory,
+    tenant_id_factory,
+) -> None:
+    owner_id = tenant_id_factory()
+    existing_categories = transaction_category_set_factory(
+        owner_id=owner_id,
+        names=("Food",),
+    )
+    existing_category = next(iter(existing_categories))
+    transaction = personal_transaction_factory(
+        owner_id=owner_id,
+        category_ids={existing_category.category_id},
+    )
+    new_categories = transaction_category_set_factory(
+        owner_id=owner_id,
+        names=("Taxi",),
+    )
+    new_category = next(iter(new_categories))
+
+    transaction.add_categories({existing_category, new_category})
+
+    assert transaction.category_ids == {
+        existing_category.category_id,
+        new_category.category_id,
+    }
+    assert transaction.version.version == 2
+
+
+def test_personal_transaction_removes_only_existing_categories(
+    personal_transaction_factory,
+    transaction_category_set_factory,
+    tenant_id_factory,
+) -> None:
+    owner_id = tenant_id_factory()
+    categories = transaction_category_set_factory(
+        owner_id=owner_id,
+        names=("Food", "Taxi"),
+    )
+    category_list = list(categories)
+    transaction = personal_transaction_factory(
+        owner_id=owner_id,
+        category_ids={category.category_id for category in categories},
+    )
+    missing_category = next(
+        iter(
+            transaction_category_set_factory(
+                owner_id=owner_id,
+                names=("Office",),
+            )
+        )
+    )
+
+    transaction.remove_categories({category_list[0], missing_category})
+
+    assert transaction.category_ids == {category_list[1].category_id}
+    assert transaction.version.version == 2
+
+
+def test_personal_transaction_rejects_adding_only_existing_categories(
+    personal_transaction_factory,
+    transaction_category_set_factory,
+    tenant_id_factory,
+) -> None:
+    owner_id = tenant_id_factory()
+    categories = transaction_category_set_factory(
+        owner_id=owner_id,
+        names=("Food", "Taxi"),
+    )
+    transaction = personal_transaction_factory(
+        owner_id=owner_id,
+        category_ids={category.category_id for category in categories},
+    )
+
+    with pytest.raises(EntityInvalidDataError):
+        transaction.add_categories(categories)
+
+
+def test_personal_transaction_rejects_removing_only_missing_categories(
+    personal_transaction_factory,
+    transaction_category_set_factory,
+    tenant_id_factory,
+) -> None:
+    owner_id = tenant_id_factory()
+    transaction = personal_transaction_factory(owner_id=owner_id, category_ids=set())
+    categories = transaction_category_set_factory(
+        owner_id=owner_id,
+        names=("Food", "Taxi"),
+    )
+
+    with pytest.raises(EntityInvalidDataError):
+        transaction.remove_categories(categories)

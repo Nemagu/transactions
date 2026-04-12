@@ -19,7 +19,7 @@ def test_transaction_category_factory_new_creates_default_category() -> None:
     )
 
     assert category.category_id.category_id == category_id
-    assert category.owner_id.user_id == owner_id
+    assert category.owner_id.tenant_id == owner_id
     assert category.name.name == "Food"
     assert category.description.description == ""
     assert category.state == State.ACTIVE
@@ -41,7 +41,7 @@ def test_transaction_category_factory_restore_recreates_category() -> None:
     )
 
     assert category.category_id.category_id == category_id
-    assert category.owner_id.user_id == owner_id
+    assert category.owner_id.tenant_id == owner_id
     assert category.name.name == "Food"
     assert category.description.description == "Daily expenses"
     assert category.state == State.DELETED

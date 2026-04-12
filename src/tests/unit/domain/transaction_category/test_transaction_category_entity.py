@@ -1,6 +1,10 @@
 import pytest
 
-from src.domain.errors import EntityIdempotentError, EntityInvalidDataError
+from src.domain.errors import (
+    EntityIdempotentError,
+    EntityInvalidDataError,
+    ValueObjectInvalidDataError,
+)
 from src.domain.transaction_category.value_objects import (
     TransactionCategoryDescription,
     TransactionCategoryName,
@@ -128,3 +132,13 @@ def test_transaction_category_rejects_changes_when_deleted(
 
     with pytest.raises(EntityInvalidDataError):
         getattr(category, method_name)(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["", " ", "a" * 51],
+    ids=["empty", "blank", "too-long"],
+)
+def test_transaction_category_name_rejects_invalid_values(value: str) -> None:
+    with pytest.raises(ValueObjectInvalidDataError):
+        TransactionCategoryName(value)

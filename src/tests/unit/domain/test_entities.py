@@ -10,9 +10,16 @@ class StubEntity(Entity):
         super().__init__(
             version=version,
             aggregate_name=AggregateName("тестовая сущность"),
-            extend_repr_fields=["_payload"],
+            id_private_field="_entity_id",
+            main_error_field_name="entity",
+            extend_repr_fields=["_entity_id", "_payload"],
         )
+        self._entity_id = "entity-1"
         self._payload = "value"
+
+    @property
+    def entity_id(self) -> str:
+        return self._entity_id
 
 
 class StubEntityWithState(EntityWithState):
@@ -21,9 +28,31 @@ class StubEntityWithState(EntityWithState):
             state=state,
             version=version,
             aggregate_name=AggregateName("сущность с состоянием"),
-            extend_repr_fields=["_payload"],
+            id_private_field="_entity_id",
+            main_error_field_name="entity",
+            extend_repr_fields=["_entity_id", "_payload"],
         )
+        self._entity_id = "entity-1"
         self._payload = "value"
+
+    @property
+    def entity_id(self) -> str:
+        return self._entity_id
+
+
+class StubEntityWithoutMainErrorField(Entity):
+    def __init__(self) -> None:
+        super().__init__(
+            version=Version(1),
+            aggregate_name=AggregateName("fallback сущность"),
+            id_private_field="_entity_id",
+            extend_repr_fields=["_entity_id"],
+        )
+        self._entity_id = "entity-1"
+
+    @property
+    def entity_id(self) -> str:
+        return self._entity_id
 
 
 def test_entity_exposes_version() -> None:
@@ -60,9 +89,20 @@ def test_entity_repr_contains_registered_fields() -> None:
 
     assert repr(entity) == (
         "StubEntity(_version: Version(version=2), "
-        "_aggregate_name: AggregateName(name='тестовая сущность'), _payload: value)"
+        "_aggregate_name: AggregateName(name='тестовая сущность'), "
+        "_entity_id: entity-1, _payload: value)"
     )
     assert str(entity) == repr(entity)
+
+
+def test_entity_uses_fallback_main_error_field_name() -> None:
+    entity = StubEntityWithoutMainErrorField()
+
+    assert entity._error_data("ошибка") == {
+        "msg": "ошибка",
+        "struct_name": "fallback сущность",
+        "data": {"entity": {"entity_id": "entity-1"}},
+    }
 
 
 def test_entity_with_state_changes_state_once_per_cycle() -> None:
@@ -74,6 +114,15 @@ def test_entity_with_state_changes_state_once_per_cycle() -> None:
     assert entity.state == State.ACTIVE
     assert entity.version == Version(4)
     assert entity.original_version == Version(3)
+
+
+def test_entity_with_state_updates_state_via_new_state() -> None:
+    entity = StubEntityWithState(state=State.ACTIVE, version=Version(1))
+
+    entity.new_state(State.DELETED)
+
+    assert entity.state == State.DELETED
+    assert entity.version == Version(2)
 
 
 @pytest.mark.parametrize(

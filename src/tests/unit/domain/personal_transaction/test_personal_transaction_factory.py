@@ -10,34 +10,18 @@ from src.domain.personal_transaction.value_objects import (
     Currency,
     PersonalTransactionType,
 )
-from src.domain.transaction_category.entity import TransactionCategory
-from src.domain.transaction_category.value_objects import (
-    TransactionCategoryDescription,
-    TransactionCategoryID,
-    TransactionCategoryName,
-)
-from src.domain.user.value_objects import UserID
-from src.domain.value_objects import State, Version
+from src.domain.value_objects import State
 
 
 def test_personal_transaction_factory_new_creates_default_transaction() -> None:
     transaction_id = uuid4()
     owner_id = uuid4()
+    category_id = uuid4()
     transaction_time = datetime(2026, 4, 5, 12, 0, 0)
-    categories = {
-        TransactionCategory(
-            category_id=TransactionCategoryID(uuid4()),
-            owner_id=UserID(owner_id),
-            name=TransactionCategoryName("Food"),
-            description=TransactionCategoryDescription("Daily expenses"),
-            state=State.ACTIVE,
-            version=Version(1),
-        )
-    }
 
     transaction = PersonalTransactionFactory.new(
         transaction_id=transaction_id,
-        categories=categories,
+        category_ids={category_id},
         owner_id=owner_id,
         name=" Coffee ",
         description="",
@@ -48,8 +32,8 @@ def test_personal_transaction_factory_new_creates_default_transaction() -> None:
     )
 
     assert transaction.transaction_id.transaction_id == transaction_id
-    assert transaction.owner_id.user_id == owner_id
-    assert transaction.category_ids == {category.category_id for category in categories}
+    assert transaction.owner_id.tenant_id == owner_id
+    assert {item.category_id for item in transaction.category_ids} == {category_id}
     assert transaction.name.name == "Coffee"
     assert transaction.description.description == ""
     assert transaction.transaction_type == PersonalTransactionType.EXPENSE
@@ -64,24 +48,15 @@ def test_personal_transaction_factory_new_creates_default_transaction() -> None:
 def test_personal_transaction_factory_restore_recreates_transaction() -> None:
     transaction_id = uuid4()
     owner_id = uuid4()
+    category_id = uuid4()
     transaction_time = datetime(2026, 4, 5, 12, 0, 0)
-    categories = {
-        TransactionCategory(
-            category_id=TransactionCategoryID(uuid4()),
-            owner_id=UserID(owner_id),
-            name=TransactionCategoryName("Salary"),
-            description=TransactionCategoryDescription("Income"),
-            state=State.ACTIVE,
-            version=Version(1),
-        )
-    }
 
     transaction = PersonalTransactionFactory.restore(
         transaction_id=transaction_id,
         owner_id=owner_id,
         name="Salary",
         description="April salary",
-        categories=categories,
+        category_ids={category_id},
         transaction_type="income",
         amount=Decimal("2500"),
         currency="dollar",
@@ -91,8 +66,8 @@ def test_personal_transaction_factory_restore_recreates_transaction() -> None:
     )
 
     assert transaction.transaction_id.transaction_id == transaction_id
-    assert transaction.owner_id.user_id == owner_id
-    assert transaction.category_ids == {category.category_id for category in categories}
+    assert transaction.owner_id.tenant_id == owner_id
+    assert {item.category_id for item in transaction.category_ids} == {category_id}
     assert transaction.name.name == "Salary"
     assert transaction.description.description == "April salary"
     assert transaction.transaction_type == PersonalTransactionType.INCOME
@@ -105,24 +80,13 @@ def test_personal_transaction_factory_restore_recreates_transaction() -> None:
 
 
 def test_personal_transaction_factory_restore_raises_error_for_invalid_type() -> None:
-    categories = {
-        TransactionCategory(
-            category_id=TransactionCategoryID(uuid4()),
-            owner_id=UserID(uuid4()),
-            name=TransactionCategoryName("Salary"),
-            description=TransactionCategoryDescription("Income"),
-            state=State.ACTIVE,
-            version=Version(1),
-        )
-    }
-
     with pytest.raises(ValueObjectInvalidDataError):
         PersonalTransactionFactory.restore(
             transaction_id=uuid4(),
             owner_id=uuid4(),
             name="Salary",
             description="April salary",
-            categories=categories,
+            category_ids={uuid4()},
             transaction_type="transfer",
             amount=Decimal("2500"),
             currency="dollar",

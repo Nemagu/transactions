@@ -1,7 +1,7 @@
 import pytest
 
 from src.domain.errors import ValueObjectInvalidDataError
-from src.domain.value_objects import AggregateName, State, Version
+from src.domain.value_objects import AggregateName, ProjectionName, State, Version
 
 
 def test_version_accepts_positive_number() -> None:
@@ -9,28 +9,50 @@ def test_version_accepts_positive_number() -> None:
     assert Version(7).version == 7
 
 
-def test_version_rejects_zero_and_negative_number() -> None:
+@pytest.mark.parametrize(
+    "value",
+    [0, -1],
+    ids=["zero", "negative"],
+)
+def test_version_rejects_invalid_number(value: int) -> None:
     with pytest.raises(ValueObjectInvalidDataError):
-        Version(0)
-
-    with pytest.raises(ValueObjectInvalidDataError):
-        Version(-1)
-
-
-def test_aggregate_name_strips_whitespace() -> None:
-    value_object = AggregateName(" пользователь ")
-
-    assert value_object.name == "пользователь"
+        Version(value)
 
 
 @pytest.mark.parametrize(
-    "value",
-    ["", " ", "a" * 51],
-    ids=["empty", "blank", "too-long"],
+    ("cls", "value"),
+    [
+        (AggregateName, " агрегат "),
+        (ProjectionName, " проекция "),
+    ],
+    ids=["aggregate-name", "projection-name"],
 )
-def test_aggregate_name_rejects_invalid_values(value: str) -> None:
+def test_name_value_objects_strip_whitespace(cls, value: str) -> None:
+    assert cls(value).name == value.strip()
+
+
+@pytest.mark.parametrize(
+    ("cls", "value"),
+    [
+        (AggregateName, ""),
+        (AggregateName, " "),
+        (AggregateName, "a" * 51),
+        (ProjectionName, ""),
+        (ProjectionName, " "),
+        (ProjectionName, "a" * 51),
+    ],
+    ids=[
+        "aggregate-empty",
+        "aggregate-blank",
+        "aggregate-too-long",
+        "projection-empty",
+        "projection-blank",
+        "projection-too-long",
+    ],
+)
+def test_name_value_objects_reject_invalid_values(cls, value: str) -> None:
     with pytest.raises(ValueObjectInvalidDataError):
-        AggregateName(value)
+        cls(value)
 
 
 @pytest.mark.parametrize(
