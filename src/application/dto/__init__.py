@@ -1,3 +1,4 @@
+from application.dto.paginators import LimitOffsetPaginator
 from application.dto.personal_transaction import (
     MoneyAmountDTO,
     PersonalTransactionSimpleDTO,
@@ -7,6 +8,7 @@ from application.dto.transaction_category import TransactionCategorySimpleDTO
 from application.dto.user import UserSimpleDTO
 
 __all__ = [
+    "LimitOffsetPaginator",
     "MoneyAmountDTO",
     "PersonalTransactionSimpleDTO",
     "TenantSimpleDTO",
