@@ -19,6 +19,9 @@ class TenantReadRepository(DomainTenantReadRepository):
     @abstractmethod
     async def save(self, tenant: Tenant) -> None: ...
 
+    @abstractmethod
+    async def batch_save(self, tenants: list[Tenant]) -> None: ...
+
 
 class TenantVersionRepository(ABC):
     @abstractmethod
@@ -39,3 +42,6 @@ class TenantVersionRepository(ABC):
 
     @abstractmethod
     async def save(self, tenant: Tenant) -> None: ...
+
+    @abstractmethod
+    async def batch_save(self, tenants: list[Tenant]) -> None: ...

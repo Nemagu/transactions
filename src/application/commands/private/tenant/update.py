@@ -1,41 +1,25 @@
-from dataclasses import asdict, dataclass
-from uuid import UUID
-
 from application.commands.base import BaseUseCase
-from application.dto import TenantSimpleDTO
-from application.errors import AppNotFoundError
 from domain.errors import EntityIdempotentError
-from domain.tenant import TenantID, TenantState
-from domain.user import UserID
-
-
-@dataclass
-class TenantUpdateCommand:
-    user_id: UUID
+from domain.tenant import TenantState
 
 
 class TenantUpdateUseCase(BaseUseCase):
-    async def execute(self, command: TenantUpdateCommand) -> TenantSimpleDTO:
-        action_name = "обновление арендатора"
+    async def execute(self) -> None:
         async with self._uow as uow:
-            user = await uow.user_repositories.read.by_id(UserID(command.user_id))
-            if user is None:
-                raise AppNotFoundError(
-                    msg=f"пользователь с {command.user_id} не существует",
-                    action=action_name,
-                    data={"user": asdict(command)},
-                )
-            tenant = await uow.tenant_repositories.read.by_id(TenantID(command.user_id))
-            if tenant is None:
-                raise AppNotFoundError(
-                    msg=f"арендатор с {command.user_id} не существует",
-                    action=action_name,
-                    data={"tenant": {"tenant_id": command.user_id}},
-                )
-            try:
-                tenant.new_state(TenantState.from_str(user.state.value))
-                await uow.tenant_repositories.read.save(tenant)
-                await uow.tenant_repositories.version.save(tenant)
-            except EntityIdempotentError:
-                pass
-            return TenantSimpleDTO.from_domain(tenant)
+            tenant_match_user = await uow.subscription_repositories.common.new_users_versions_for_tenants()
+            if len(tenant_match_user) == 0:
+                return
+            for tenant, user in tenant_match_user:
+                try:
+                    tenant.new_state(TenantState.from_str(user.state.value))
+                except EntityIdempotentError:
+                    pass
+            await uow.tenant_repositories.read.batch_save(
+                [matching[0] for matching in tenant_match_user]
+            )
+            await uow.tenant_repositories.version.batch_save(
+                [matching[0] for matching in tenant_match_user]
+            )
+            await uow.subscription_repositories.common.batch_processed_version(
+                tenant_match_user
+            )
