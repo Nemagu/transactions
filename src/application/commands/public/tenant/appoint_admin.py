@@ -4,6 +4,7 @@ from uuid import UUID
 from application.commands.base import BaseUseCase
 from application.dto import TenantSimpleDTO
 from application.errors import AppNotFoundError
+from application.ports.repositories import TenantEvent
 from domain.tenant import TenantID
 
 
@@ -38,5 +39,7 @@ class TenantAppointmentAdminUseCase(BaseUseCase):
                 )
             tenant.appoint_admin()
             await uow.tenant_repositories.read.save(tenant)
-            await uow.tenant_repositories.version.save(tenant)
+            await uow.tenant_repositories.version.save(
+                tenant, TenantEvent.UPDATED, initiator
+            )
             return TenantSimpleDTO.from_domain(tenant)

@@ -4,6 +4,7 @@ from uuid import UUID
 from application.commands.base import BaseUseCase
 from application.dto import TransactionCategorySimpleDTO
 from application.errors import AppInvalidDataError
+from application.ports.repositories import TransactionCategoryEvent
 from domain.tenant import TenantID
 from domain.transaction_category import (
     TransactionCategoryDescription,
@@ -69,5 +70,7 @@ class TransactionCategoryUpdateUseCase(BaseUseCase):
                 )
                 category.new_name(TransactionCategoryName(command.name))
             await uow.category_repositories.read.save(category)
-            await uow.category_repositories.version.save(category)
+            await uow.category_repositories.version.save(
+                category, TransactionCategoryEvent.UPDATED, initiator
+            )
             return TransactionCategorySimpleDTO.from_domain(category)

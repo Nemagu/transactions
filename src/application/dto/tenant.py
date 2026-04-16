@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Self
 from uuid import UUID
 
@@ -20,3 +21,25 @@ class TenantSimpleDTO:
             tenant.state.value,
             tenant.version.version,
         )
+
+
+@dataclass(slots=True)
+class TenantVersionSimpleDTO:
+    tenant_id: UUID
+    status: str
+    state: str
+    version: int
+    editor_id: UUID | None
+    event: str
+    created_at: datetime
+
+
+@dataclass(slots=True)
+class TenantVersionDetailDTO:
+    tenant_id: UUID
+    status: str
+    state: str
+    version: int
+    editor: TenantSimpleDTO | None
+    event: str
+    created_at: datetime

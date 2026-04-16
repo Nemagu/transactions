@@ -4,6 +4,7 @@ from uuid import UUID
 from application.commands.base import BaseUseCase
 from application.dto import PersonalTransactionSimpleDTO
 from application.errors import AppInvalidDataError, AppNotFoundError
+from application.ports.repositories import PersonalTransactionEvent
 from domain.personal_transaction import (
     PersonalTransactionID,
     PersonalTransactionPolicyService,
@@ -45,5 +46,7 @@ class PersonalTransactionDeletionUseCase(BaseUseCase):
             PersonalTransactionPolicyService().raise_owner(initiator, transaction)
             transaction.delete()
             await uow.transaction_repositories.read.save(transaction)
-            await uow.transaction_repositories.version.save(transaction)
+            await uow.transaction_repositories.version.save(
+                transaction, PersonalTransactionEvent.DELETED
+            )
             return PersonalTransactionSimpleDTO.from_domain(transaction)

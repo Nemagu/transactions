@@ -5,6 +5,7 @@ from uuid import UUID
 from application.commands.base import BaseUseCase
 from application.dto import MoneyAmountDTO, PersonalTransactionSimpleDTO
 from application.errors import AppInvalidDataError
+from application.ports.repositories import PersonalTransactionEvent
 from domain.personal_transaction import PersonalTransactionFactory
 from domain.tenant import TenantID
 from domain.transaction_category import TransactionCategoryID
@@ -72,5 +73,7 @@ class PersonalTransactionCreationUseCase(BaseUseCase):
                 )
             transaction.validate_categories((categories))
             await uow.transaction_repositories.read.save(transaction)
-            await uow.transaction_repositories.version.save(transaction)
+            await uow.transaction_repositories.version.save(
+                transaction, PersonalTransactionEvent.CREATED
+            )
             return PersonalTransactionSimpleDTO.from_domain(transaction)

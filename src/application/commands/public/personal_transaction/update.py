@@ -5,6 +5,7 @@ from uuid import UUID
 from application.commands.base import BaseUseCase
 from application.dto import MoneyAmountDTO, PersonalTransactionSimpleDTO
 from application.errors import AppInvalidDataError, AppNotFoundError
+from application.ports.repositories import PersonalTransactionEvent
 from application.ports.unit_of_work import UnitOfWork
 from domain.personal_transaction import (
     Currency,
@@ -131,7 +132,9 @@ class PersonalTransactionUpdateUseCase(BaseUseCase):
                 categories = await self._categories(uow, command.remove_category_ids)
                 transaction.remove_categories(categories)
             await uow.transaction_repositories.read.save(transaction)
-            await uow.transaction_repositories.version.save(transaction)
+            await uow.transaction_repositories.version.save(
+                transaction, PersonalTransactionEvent.UPDATED
+            )
             return PersonalTransactionSimpleDTO.from_domain(transaction)
 
     async def _categories(

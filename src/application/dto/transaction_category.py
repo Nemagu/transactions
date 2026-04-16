@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Self
 from uuid import UUID
 
@@ -24,3 +25,16 @@ class TransactionCategorySimpleDTO:
             category.state.value,
             category.version.version,
         )
+
+
+@dataclass(slots=True)
+class TransactionCategoryVersionSimpleDTO:
+    category_id: UUID
+    owner_id: UUID
+    name: str
+    description: str
+    state: str
+    version: int
+    event: str
+    editor_id: UUID | None
+    created_at: datetime
