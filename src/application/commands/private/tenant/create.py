@@ -7,7 +7,7 @@ from domain.user import User
 class TenantCreationUseCase(BaseUseCase):
     async def execute(self) -> None:
         async with self._uow as uow:
-            users = await uow.subscription_repositories.common.users_have_no_tenants()
+            users = await uow.tenant_repositories.subscription.users_have_no_tenants()
             if len(users) == 0:
                 return
             service = TenantCreationService(uow.tenant_repositories.read)
@@ -21,6 +21,6 @@ class TenantCreationUseCase(BaseUseCase):
             await uow.tenant_repositories.version.batch_save(
                 [(tenant, TenantEvent.CREATED, None) for tenant in tenants]
             )
-            await uow.subscription_repositories.common.batch_subscribe(
+            await uow.tenant_repositories.subscription.batch_subscribe(
                 tenant_and_user_list
             )

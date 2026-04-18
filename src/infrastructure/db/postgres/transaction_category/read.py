@@ -1,6 +1,7 @@
 from typing import Any
-from uuid import UUID, uuid7
+from uuid import uuid7
 
+from psycopg.rows import DictRow
 from psycopg.sql import SQL, Identifier
 
 from application.dto import LimitOffsetPaginator
@@ -35,7 +36,7 @@ class TransactionCategoryReadPostgresRepository(
                 state,
                 version
             FROM {}
-            WHERE id = %s
+            WHERE category_id = %s
             """
         ).format(Identifier(self._category_tables.read))
         data = await self._fetchone(query, (category_id.category_id,))
@@ -54,7 +55,7 @@ class TransactionCategoryReadPostgresRepository(
                 state,
                 version
             FROM {}
-            WHERE id = ANY(%s)
+            WHERE category_id = ANY(%s)
             """
         ).format(Identifier(self._category_tables.read))
         data = await self._fetchall(
@@ -90,7 +91,7 @@ class TransactionCategoryReadPostgresRepository(
         names: list[TransactionCategoryName] | None,
         states: list[State] | None,
     ) -> tuple[list[TransactionCategory], int]:
-        conditions = [SQL("owner_id = %s")]
+        conditions = [SQL("WHERE owner_id = %s")]
         params: list[Any] = [owner_id.tenant_id]
         if names:
             conditions.append(SQL("name = ANY(%s)"))
@@ -134,7 +135,7 @@ class TransactionCategoryReadPostgresRepository(
         query = SQL(
             """
             INSERT INTO {} (
-                cateogry_id,
+                category_id,
                 owner_id,
                 name,
                 description,
@@ -160,7 +161,7 @@ class TransactionCategoryReadPostgresRepository(
         query = SQL(
             """
             UPDATE {}
-            SET name = %s, desctiption = %s, state = %s, version = %s
+            SET name = %s, description = %s, state = %s, version = %s
             WHERE category_id = %s
             """
         ).format(Identifier(self._category_tables.read))
@@ -175,9 +176,12 @@ class TransactionCategoryReadPostgresRepository(
             ),
         )
 
-    def _data_to_domain(
-        self, data: tuple[UUID, UUID, str, str, str, int]
-    ) -> TransactionCategory:
+    def _data_to_domain(self, data: DictRow) -> TransactionCategory:
         return TransactionCategoryFactory.restore(
-            data[0], data[1], data[2], data[3], data[4], data[5]
+            data["category_id"],
+            data["owner_id"],
+            data["name"],
+            data["description"],
+            data["state"],
+            data["version"],
         )

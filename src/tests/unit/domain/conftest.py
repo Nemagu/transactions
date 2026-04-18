@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from uuid import UUID, uuid4
+from uuid import UUID, uuid7
 
 import pytest
 
@@ -13,7 +13,7 @@ from domain.value_objects import Version
 @pytest.fixture
 def tenant_id_factory() -> Callable[[UUID | None], TenantID]:
     def factory(value: UUID | None = None) -> TenantID:
-        return TenantID(value or uuid4())
+        return TenantID(value or uuid7())
 
     return factory
 
@@ -42,7 +42,7 @@ def tenant_factory(
 @pytest.fixture
 def user_id_factory() -> Callable[[UUID | None], UserID]:
     def factory(value: UUID | None = None) -> UserID:
-        return UserID(value or uuid4())
+        return UserID(value or uuid7())
 
     return factory
 

@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
-from application.dto import LimitOffsetPaginator, TransactionCategoryVersionSimpleDTO
+from application.dto import LimitOffsetPaginator
 from application.errors import AppInternalError
 from domain.tenant import Tenant, TenantID
 from domain.transaction_category import (
@@ -88,17 +88,6 @@ class TransactionCategoryVersionRepository(ABC):
         ],
         int,
     ]: ...
-
-    @abstractmethod
-    async def filters_to_simple_dto(
-        self,
-        owner_id: TenantID,
-        paginator: LimitOffsetPaginator,
-        names: list[TransactionCategoryName] | None,
-        states: list[State] | None,
-        from_version: Version | None,
-        to_version: Version | None,
-    ) -> tuple[list[TransactionCategoryVersionSimpleDTO], int]: ...
 
     @abstractmethod
     async def save(

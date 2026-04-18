@@ -1,5 +1,4 @@
-from uuid import UUID
-
+from psycopg.rows import DictRow
 from psycopg.sql import SQL, Identifier
 
 from application.ports.repositories import UserReadRepository
@@ -56,5 +55,5 @@ class UserReadPostgresRepository(BasePostgresRepository, UserReadRepository):
         )
 
     @handle_domain_errors
-    def _data_to_domain(self, data: tuple[UUID, str, int]) -> User:
-        return UserFactory.restore(*data)
+    def _data_to_domain(self, data: DictRow) -> User:
+        return UserFactory.restore(data["user_id"], data["state"], data["version"])

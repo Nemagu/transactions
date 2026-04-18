@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Any
-from uuid import UUID
 
+from psycopg.rows import DictRow
 from psycopg.sql import SQL, Composed, Identifier
 
-from application.dto import LimitOffsetPaginator, TransactionCategoryVersionSimpleDTO
+from application.dto import LimitOffsetPaginator
 from application.ports.repositories import (
     TransactionCategoryEvent,
     TransactionCategoryVersionRepository,
@@ -95,51 +95,6 @@ class TransactionCategoryVersionPostgresRepository(
         data = await self._fetchall(query, tuple(params))
         return [self._data_to_domain(row) for row in data], count
 
-    async def filters_to_simple_dto(
-        self,
-        owner_id: TenantID,
-        paginator: LimitOffsetPaginator,
-        names: list[TransactionCategoryName] | None,
-        states: list[State] | None,
-        from_version: Version | None,
-        to_version: Version | None,
-    ) -> tuple[list[TransactionCategoryVersionSimpleDTO], int]:
-        conditions, params = self._init_conditions_with_params(
-            owner_id, names, states, from_version, to_version
-        )
-        count = await self._count_rows(
-            conditions, params, self._category_tables.version
-        )
-        if count == 0:
-            return list(), count
-        query, params = self._extend_query_with_limit_offset(
-            SQL(
-                """
-                SELECT
-                    category_id,
-                    owner_id,
-                    name,
-                    description,
-                    state,
-                    version,
-                    event,
-                    editor_id,
-                    created_at
-                FROM {}
-                """
-            ).format(Identifier(self._category_tables.version)),
-            conditions,
-            params,
-            paginator,
-        )
-        data = await self._fetchall(query, tuple(params))
-        return [
-            TransactionCategoryVersionSimpleDTO(
-                row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]
-            )
-            for row in data
-        ], count
-
     async def save(
         self,
         category: TransactionCategory,
@@ -185,16 +140,23 @@ class TransactionCategoryVersionPostgresRepository(
 
     @handle_domain_errors
     def _data_to_domain(
-        self, data: tuple[UUID, UUID, str, str, str, int, str, UUID, datetime]
+        self, data: DictRow
     ) -> tuple[
         TransactionCategory, TransactionCategoryEvent, TenantID | None, datetime
     ]:
         category = TransactionCategoryFactory.restore(
-            data[0], data[1], data[2], data[3], data[4], data[5]
+            data["category_id"],
+            data["owner_id"],
+            data["name"],
+            data["description"],
+            data["state"],
+            data["version"],
         )
-        event = TransactionCategoryEvent.from_str(data[6])
-        tenant_id = TenantID(data[7]) if data[7] is not None else None
-        created_at = data[8]
+        event = TransactionCategoryEvent.from_str(data["event"])
+        tenant_id = (
+            TenantID(data["editor_id"]) if data["editor_id"] is not None else None
+        )
+        created_at = data["created_at"]
         return category, event, tenant_id, created_at
 
     def _init_conditions_with_params(

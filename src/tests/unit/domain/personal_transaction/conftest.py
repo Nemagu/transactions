@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
-from uuid import uuid4
+from uuid import uuid7
 
 import pytest
 
@@ -35,7 +35,7 @@ def transaction_category_set_factory() -> Callable[..., set[TransactionCategory]
     ) -> set[TransactionCategory]:
         return {
             TransactionCategory(
-                category_id=TransactionCategoryID(uuid4()),
+                category_id=TransactionCategoryID(uuid7()),
                 owner_id=owner_id,
                 name=TransactionCategoryName(name),
                 description=TransactionCategoryDescription(f"{name} description"),
@@ -72,7 +72,7 @@ def personal_transaction_factory(
             categories = transaction_category_set_factory(owner_id=transaction_owner_id)
             ids = {category.category_id for category in categories}
         return PersonalTransaction(
-            transaction_id=transaction_id or PersonalTransactionID(uuid4()),
+            transaction_id=transaction_id or PersonalTransactionID(uuid7()),
             category_ids=ids,
             owner_id=transaction_owner_id,
             name=PersonalTransactionName(name),

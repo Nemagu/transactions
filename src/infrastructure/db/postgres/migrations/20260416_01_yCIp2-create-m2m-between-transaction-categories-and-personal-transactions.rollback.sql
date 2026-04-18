@@ -3,6 +3,9 @@
 
 BEGIN;
 
+DELETE FROM transactions_tables WHERE name IN ('personal_transaction_categories', 'personal_transaction_categories_versions');
+
 DROP TABLE IF EXISTS personal_transaction_categories;
+DROP TABLE IF EXISTS personal_transaction_categories_versions;
 
 COMMIT;

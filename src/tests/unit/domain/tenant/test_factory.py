@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid7
 
 import pytest
 
@@ -8,7 +8,7 @@ from domain.tenant.value_objects import TenantState, TenantStatus
 
 
 def test_tenant_factory_new_creates_default_tenant() -> None:
-    tenant_id = uuid4()
+    tenant_id = uuid7()
 
     tenant = TenantFactory.new(tenant_id=tenant_id, state="active")
 
@@ -19,7 +19,7 @@ def test_tenant_factory_new_creates_default_tenant() -> None:
 
 
 def test_tenant_factory_restore_recreates_tenant() -> None:
-    tenant_id = uuid4()
+    tenant_id = uuid7()
 
     tenant = TenantFactory.restore(
         tenant_id=tenant_id,
@@ -37,7 +37,7 @@ def test_tenant_factory_restore_recreates_tenant() -> None:
 def test_tenant_factory_restore_rejects_invalid_status() -> None:
     with pytest.raises(ValueObjectInvalidDataError):
         TenantFactory.restore(
-            tenant_id=uuid4(),
+            tenant_id=uuid7(),
             status="manager",
             state="active",
             version=1,

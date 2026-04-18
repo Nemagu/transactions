@@ -5,10 +5,10 @@ from application.ports.repositories.personal_transaction import (
     PersonalTransactionReadRepository,
     PersonalTransactionVersionRepository,
 )
-from application.ports.repositories.subscription import SubscriptionRepository
 from application.ports.repositories.tenant import (
     TenantEvent,
     TenantReadRepository,
+    TenantSubscriptionRepository,
     TenantVersionRepository,
 )
 from application.ports.repositories.transaction_category import (
@@ -23,11 +23,10 @@ __all__ = [
     "PersonalTransactionReadRepository",
     "PersonalTransactionRepositories",
     "PersonalTransactionVersionRepository",
-    "SubscriptionRepositories",
-    "SubscriptionRepository",
     "TenantEvent",
     "TenantReadRepository",
     "TenantRepositories",
+    "TenantSubscriptionRepository",
     "TenantVersionRepository",
     "TransactionCategoryEvent",
     "TransactionCategoryReadRepository",
@@ -39,11 +38,6 @@ __all__ = [
 
 
 @dataclass(slots=True)
-class SubscriptionRepositories:
-    common: SubscriptionRepository
-
-
-@dataclass(slots=True)
 class UserRepositories:
     read: UserReadRepository
 
@@ -52,6 +46,7 @@ class UserRepositories:
 class TenantRepositories:
     read: TenantReadRepository
     version: TenantVersionRepository
+    subscription: TenantSubscriptionRepository
 
 
 @dataclass(slots=True)

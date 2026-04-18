@@ -3,11 +3,11 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
-from application.dto import LimitOffsetPaginator, TenantVersionSimpleDTO
-from application.dto.tenant import TenantVersionDetailDTO
+from application.dto import LimitOffsetPaginator
 from application.errors import AppInternalError
 from domain.tenant import Tenant, TenantID, TenantState, TenantStatus
 from domain.tenant import TenantReadRepository as DomainTenantReadRepository
+from domain.user import User
 from domain.value_objects import Version
 
 
@@ -37,7 +37,7 @@ class TenantReadRepository(DomainTenantReadRepository):
         paginator: LimitOffsetPaginator,
         tenant_ids: list[TenantID] | None,
         statuses: list[TenantStatus] | None,
-        stages: list[TenantState] | None,
+        states: list[TenantState] | None,
     ) -> tuple[list[Tenant], int]: ...
 
     @abstractmethod
@@ -65,28 +65,6 @@ class TenantVersionRepository(ABC):
     ) -> tuple[list[tuple[Tenant, TenantEvent, TenantID | None, datetime]], int]: ...
 
     @abstractmethod
-    async def filters_simple_dto(
-        self,
-        paginator: LimitOffsetPaginator,
-        tenant_id: TenantID,
-        statuses: list[TenantStatus] | None,
-        states: list[TenantState] | None,
-        from_version: Version | None,
-        to_version: Version | None,
-    ) -> tuple[list[TenantVersionSimpleDTO], int]: ...
-
-    @abstractmethod
-    async def filters_detail_dto(
-        self,
-        paginator: LimitOffsetPaginator,
-        tenant_id: TenantID,
-        statuses: list[TenantStatus] | None,
-        states: list[TenantState] | None,
-        from_version: Version | None,
-        to_version: Version | None,
-    ) -> tuple[list[TenantVersionDetailDTO], int]: ...
-
-    @abstractmethod
     async def save(
         self, tenant: Tenant, event: TenantEvent, editor: Tenant | None = None
     ) -> None: ...
@@ -95,3 +73,27 @@ class TenantVersionRepository(ABC):
     async def batch_save(
         self, tenants_events_editors: list[tuple[Tenant, TenantEvent, Tenant | None]]
     ) -> None: ...
+
+
+class TenantSubscriptionRepository(ABC):
+    @abstractmethod
+    async def subscribe(self, subscriber: Tenant, source: User) -> None: ...
+
+    @abstractmethod
+    async def batch_subscribe(
+        self, subscriber_and_source: list[tuple[Tenant, User]]
+    ) -> None: ...
+
+    @abstractmethod
+    async def processed_version(self, subscriber: Tenant, source: User) -> None: ...
+
+    @abstractmethod
+    async def batch_processed_version(
+        self, subscriber_and_source: list[tuple[Tenant, User]]
+    ) -> None: ...
+
+    @abstractmethod
+    async def users_have_no_tenants(self) -> list[User]: ...
+
+    @abstractmethod
+    async def new_users_versions(self) -> list[tuple[Tenant, User]]: ...

@@ -6,7 +6,7 @@ from uuid import UUID
 from application.dto import (
     LimitOffsetPaginator,
     MoneyAmountDTO,
-    PersonalTransactionSimpleDTO,
+    PersonalTransactionVersionSimpleDTO,
 )
 from application.errors import AppInvalidDataError
 from application.queries.base import BaseUseCase
@@ -44,7 +44,7 @@ class PersonalTransactionVersionsQuery:
 class PersonalTransactionVersionsUseCase(BaseUseCase):
     async def execute(
         self, query: PersonalTransactionVersionsQuery
-    ) -> tuple[list[PersonalTransactionSimpleDTO], int]:
+    ) -> tuple[list[PersonalTransactionVersionSimpleDTO], int]:
         action = "получение версий транзакции"
         async with self._uow as uow:
             initiator_id = TenantID(query.user_id)
@@ -60,12 +60,16 @@ class PersonalTransactionVersionsUseCase(BaseUseCase):
             transactions, count = await uow.transaction_repositories.version.filters(
                 **filtering_data
             )
+            if count == 0:
+                return list(), count
             service = PersonalTransactionPolicyService()
-            for transaction in transactions:
+            for transaction, _, _, _ in transactions:
                 service.raise_owner(initiator, transaction)
             return [
-                PersonalTransactionSimpleDTO.from_domain(transaction)
-                for transaction in transactions
+                PersonalTransactionVersionSimpleDTO.from_domain(
+                    transaction, event, editor_id, created_at
+                )
+                for transaction, event, editor_id, created_at in transactions
             ], count
 
     def _cast_data_from_query(

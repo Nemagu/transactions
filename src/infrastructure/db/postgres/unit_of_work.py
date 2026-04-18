@@ -2,17 +2,78 @@ from types import TracebackType
 from typing import Self
 
 from psycopg import AsyncConnection
+from psycopg.rows import DictRow
 
 from application.errors import AppInternalError
+from application.ports.repositories import (
+    PersonalTransactionRepositories,
+    TenantRepositories,
+    TransactionCategoryRepositories,
+    UserRepositories,
+)
 from application.ports.unit_of_work import UnitOfWork
+from infrastructure.db.postgres.personal_transaction import (
+    PersonalTransactionReadPostgresRepository,
+    PersonalTransactionVersionPostgresRepository,
+)
+from infrastructure.db.postgres.tenant import (
+    TenantReadPostgresRepository,
+    TenantSubscriptionPostgresRepository,
+    TenantVersionPostgresRepository,
+)
+from infrastructure.db.postgres.transaction_category import (
+    TransactionCategoryReadPostgresRepository,
+    TransactionCategoryVersionPostgresRepository,
+)
+from infrastructure.db.postgres.user import UserReadPostgresRepository
 
 
 class PostgresUnitOfWork(UnitOfWork):
-    def __init__(self, connection: AsyncConnection) -> None:
+    def __init__(self, connection: AsyncConnection[DictRow]) -> None:
         self._conn = connection
         self._committed = False
         self._rolled_back = False
         self._closed = False
+        self._user_repositories = None
+        self._tenant_repositories = None
+        self._category_repositories = None
+        self._transaction_repositories = None
+
+    @property
+    def user_repositories(self) -> UserRepositories:
+        if self._user_repositories is None:
+            self._user_repositories = UserRepositories(
+                UserReadPostgresRepository(self._conn)
+            )
+        return self._user_repositories
+
+    @property
+    def tenant_repositories(self) -> TenantRepositories:
+        if self._tenant_repositories is None:
+            self._tenant_repositories = TenantRepositories(
+                TenantReadPostgresRepository(self._conn),
+                TenantVersionPostgresRepository(self._conn),
+                TenantSubscriptionPostgresRepository(self._conn),
+            )
+        return self._tenant_repositories
+
+    @property
+    def category_repositories(self) -> TransactionCategoryRepositories:
+        if self._category_repositories is None:
+            self._category_repositories = TransactionCategoryRepositories(
+                TransactionCategoryReadPostgresRepository(self._conn),
+                TransactionCategoryVersionPostgresRepository(self._conn),
+            )
+        return self._category_repositories
+
+    @property
+    def transaction_repositories(self) -> PersonalTransactionRepositories:
+        if self._transaction_repositories is None:
+            self._transaction_repositories = PersonalTransactionRepositories(
+                PersonalTransactionReadPostgresRepository(self._conn),
+                PersonalTransactionVersionPostgresRepository(self._conn),
+            )
+        return self._transaction_repositories
 
     async def __aenter__(self) -> Self:
         await self._conn.execute("BEGIN")
@@ -41,7 +102,7 @@ class PostgresUnitOfWork(UnitOfWork):
             )
         if self._closed:
             raise AppInternalError(
-                msg="UoW уже закрыт", action="повторная попытка зактытия соединения"
+                msg="UoW уже закрыт", action="повторная попытка закрытия соединения"
             )
 
     async def _commit(self) -> None:

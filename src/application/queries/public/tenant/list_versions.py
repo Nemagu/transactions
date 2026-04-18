@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from application.dto import LimitOffsetPaginator, TenantSimpleDTO
+from application.dto import LimitOffsetPaginator, TenantVersionSimpleDTO
 from application.errors import AppInvalidDataError
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID, TenantState, TenantStatus
@@ -23,7 +23,7 @@ class TenantVersionsQuery:
 class TenantVersionsUseCase(BaseUseCase):
     async def execute(
         self, query: TenantVersionsQuery
-    ) -> tuple[list[TenantSimpleDTO], int]:
+    ) -> tuple[list[TenantVersionSimpleDTO], int]:
         action = "получение нескольких версий арендатора"
         async with self._uow as uow:
             initiator_id = TenantID(query.user_id)
@@ -43,7 +43,8 @@ class TenantVersionsUseCase(BaseUseCase):
                 **filtering_data
             )
             return [
-                TenantSimpleDTO.from_domain(tenant) for tenant in tenant_versions
+                TenantVersionSimpleDTO.from_domain(tenant, event, editor_id, created_at)
+                for tenant, event, editor_id, created_at in tenant_versions
             ], count
 
     def _cast_data_from_query(self, query: TenantVersionsQuery) -> dict[str, Any]:

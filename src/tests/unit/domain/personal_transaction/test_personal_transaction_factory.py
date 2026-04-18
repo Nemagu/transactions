@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from uuid import uuid4
+from uuid import uuid7
 
 import pytest
 
@@ -14,9 +14,9 @@ from domain.value_objects import State
 
 
 def test_personal_transaction_factory_new_creates_default_transaction() -> None:
-    transaction_id = uuid4()
-    owner_id = uuid4()
-    category_id = uuid4()
+    transaction_id = uuid7()
+    owner_id = uuid7()
+    category_id = uuid7()
     transaction_time = datetime(2026, 4, 5, 12, 0, 0)
 
     transaction = PersonalTransactionFactory.new(
@@ -46,9 +46,9 @@ def test_personal_transaction_factory_new_creates_default_transaction() -> None:
 
 
 def test_personal_transaction_factory_restore_recreates_transaction() -> None:
-    transaction_id = uuid4()
-    owner_id = uuid4()
-    category_id = uuid4()
+    transaction_id = uuid7()
+    owner_id = uuid7()
+    category_id = uuid7()
     transaction_time = datetime(2026, 4, 5, 12, 0, 0)
 
     transaction = PersonalTransactionFactory.restore(
@@ -82,11 +82,11 @@ def test_personal_transaction_factory_restore_recreates_transaction() -> None:
 def test_personal_transaction_factory_restore_raises_error_for_invalid_type() -> None:
     with pytest.raises(ValueObjectInvalidDataError):
         PersonalTransactionFactory.restore(
-            transaction_id=uuid4(),
-            owner_id=uuid4(),
+            transaction_id=uuid7(),
+            owner_id=uuid7(),
             name="Salary",
             description="April salary",
-            category_ids={uuid4()},
+            category_ids={uuid7()},
             transaction_type="transfer",
             amount=Decimal("2500"),
             currency="dollar",

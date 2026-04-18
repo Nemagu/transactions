@@ -4,7 +4,6 @@ from typing import Self
 
 from application.ports.repositories import (
     PersonalTransactionRepositories,
-    SubscriptionRepositories,
     TenantRepositories,
     TransactionCategoryRepositories,
     UserRepositories,
@@ -24,10 +23,6 @@ class UnitOfWork(ABC):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None: ...
-
-    @property
-    @abstractmethod
-    def subscription_repositories(self) -> SubscriptionRepositories: ...
 
     @property
     @abstractmethod

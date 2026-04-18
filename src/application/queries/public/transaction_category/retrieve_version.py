@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from application.dto import TransactionCategorySimpleDTO
+from application.dto import (
+    TransactionCategoryVersionSimpleDTO,
+)
 from application.errors import AppInvalidDataError
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID
@@ -22,7 +24,7 @@ class TransactionCategoryVersionQuery:
 class TransactionCategoryVersionUseCase(BaseUseCase):
     async def execute(
         self, query: TransactionCategoryVersionQuery
-    ) -> TransactionCategorySimpleDTO:
+    ) -> TransactionCategoryVersionSimpleDTO:
         action = "получение версии категории транзакций"
         async with self._uow as uow:
             initiator_id = TenantID(query.user_id)
@@ -45,5 +47,8 @@ class TransactionCategoryVersionUseCase(BaseUseCase):
                     action=action,
                     data={"category": {"category_id": query.category_id}},
                 )
+            category, event, editor_id, created_at = category
             TransactionCategoryPolicyService().raise_owner(initiator, category)
-            return TransactionCategorySimpleDTO.from_domain(category)
+            return TransactionCategoryVersionSimpleDTO.from_domain(
+                category, event, editor_id, created_at
+            )

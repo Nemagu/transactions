@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid7
 
 import pytest
 
@@ -8,8 +8,8 @@ from domain.value_objects import State
 
 
 def test_transaction_category_factory_new_creates_default_category() -> None:
-    category_id = uuid4()
-    owner_id = uuid4()
+    category_id = uuid7()
+    owner_id = uuid7()
 
     category = TransactionCategoryFactory.new(
         category_id=category_id,
@@ -28,8 +28,8 @@ def test_transaction_category_factory_new_creates_default_category() -> None:
 
 
 def test_transaction_category_factory_restore_recreates_category() -> None:
-    category_id = uuid4()
-    owner_id = uuid4()
+    category_id = uuid7()
+    owner_id = uuid7()
 
     category = TransactionCategoryFactory.restore(
         category_id=category_id,
@@ -52,8 +52,8 @@ def test_transaction_category_factory_restore_recreates_category() -> None:
 def test_transaction_category_factory_restore_raises_error_for_invalid_state() -> None:
     with pytest.raises(ValueObjectInvalidDataError):
         TransactionCategoryFactory.restore(
-            category_id=uuid4(),
-            owner_id=uuid4(),
+            category_id=uuid7(),
+            owner_id=uuid7(),
             name="Food",
             description="Daily expenses",
             state="archived",

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from uuid import uuid4
+from uuid import uuid7
 
 import pytest
 
@@ -18,7 +18,7 @@ def local_tenant_factory() -> Callable[..., Tenant]:
         version: int = 1,
     ) -> Tenant:
         return Tenant(
-            tenant_id=tenant_id or TenantID(uuid4()),
+            tenant_id=tenant_id or TenantID(uuid7()),
             status=status,
             state=state,
             version=Version(version),

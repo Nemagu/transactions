@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from application.dto import TenantSimpleDTO
+from application.dto import TenantVersionSimpleDTO
 from application.errors import AppInvalidDataError
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID
@@ -16,7 +16,7 @@ class TenantVersionQuery:
 
 
 class TenantVersionUseCase(BaseUseCase):
-    async def execute(self, query: TenantVersionQuery) -> TenantSimpleDTO:
+    async def execute(self, query: TenantVersionQuery) -> TenantVersionSimpleDTO:
         action = "получение одной из версий арендатора"
         async with self._uow as uow:
             initiator_id = TenantID(query.user_id)
@@ -47,4 +47,7 @@ class TenantVersionUseCase(BaseUseCase):
                         }
                     },
                 )
-            return TenantSimpleDTO.from_domain(tenant)
+            tenant, event, editor_id, created_at = tenant
+            return TenantVersionSimpleDTO.from_domain(
+                tenant, event, editor_id, created_at
+            )

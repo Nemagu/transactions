@@ -1,5 +1,4 @@
-from uuid import UUID
-
+from psycopg.rows import DictRow
 from psycopg.sql import SQL, Identifier
 
 from application.dto import LimitOffsetPaginator
@@ -29,7 +28,7 @@ class TenantReadPostgresRepository(BasePostgresRepository, TenantReadRepository)
         paginator: LimitOffsetPaginator,
         tenant_ids: list[TenantID] | None,
         statuses: list[TenantStatus] | None,
-        stages: list[TenantState] | None,
+        states: list[TenantState] | None,
     ) -> tuple[list[Tenant], int]:
         params = list()
         conditions = [SQL("WHERE 1 = 1")]
@@ -39,9 +38,9 @@ class TenantReadPostgresRepository(BasePostgresRepository, TenantReadRepository)
         if statuses:
             conditions.append(SQL("status = ANY(%s)"))
             params.append([status.value for status in statuses])
-        if stages:
-            conditions.append(SQL("stage = ANY(%s)"))
-            params.append([stage.value for stage in stages])
+        if states:
+            conditions.append(SQL("state = ANY(%s)"))
+            params.append([state.value for state in states])
         if len(conditions) == 1:
             conditions = conditions[0]
         else:
@@ -54,14 +53,13 @@ class TenantReadPostgresRepository(BasePostgresRepository, TenantReadRepository)
         query, params = self._extend_query_with_limit_offset(
             SQL(
                 """
-            SELECT
-                id,
-                company_id,
-                external_user_id,
-                status,
-                version
-            FROM {}
-            """
+                SELECT
+                    tenant_id,
+                    status,
+                    state,
+                    version
+                FROM {}
+                """
             ).format(Identifier(self._tenant_tables.read)),
             conditions,
             params,
@@ -132,15 +130,6 @@ class TenantReadPostgresRepository(BasePostgresRepository, TenantReadRepository)
     async def _batch_create(self, tenants: list[Tenant]) -> None:
         if len(tenants) == 0:
             return
-        values = list()
-        for tenant in tenants:
-            values.append(tenant.tenant_id.tenant_id)
-            values.append(tenant.status.value)
-            values.append(tenant.state.value)
-            values.append(tenant.version.version)
-        sql_values = SQL("; ").join(
-            SQL("(%s, %s, %s, %s)") for _ in range(len(tenants))
-        )
         query = SQL(
             """
             INSERT INTO {} (
@@ -149,30 +138,47 @@ class TenantReadPostgresRepository(BasePostgresRepository, TenantReadRepository)
                 state,
                 version
             )
-            VALUES ({})
+            VALUES (%s, %s, %s, %s)
             """
-        ).format(Identifier(self._tenant_tables.read), sql_values)
-        await self._execute(query, tuple(values))
+        ).format(Identifier(self._tenant_tables.read))
+        await self._executemany(
+            query,
+            [
+                (
+                    tenant.tenant_id.tenant_id,
+                    tenant.status.value,
+                    tenant.state.value,
+                    tenant.version.version,
+                )
+                for tenant in tenants
+            ],
+        )
 
     async def _batch_update(self, tenants: list[Tenant]) -> None:
         if len(tenants) == 0:
             return
-        query_template = SQL(
+        query = SQL(
             """
             UPDATE {}
             SET status = %s, state = %s, version = %s
             WHERE tenant_id = %s
             """
         ).format(Identifier(self._tenant_tables.read))
-        query = SQL("; ").join(query_template for _ in range(len(tenants)))
-        values = list()
-        for tenant in tenants:
-            values.append(tenant.status.value)
-            values.append(tenant.state.value)
-            values.append(tenant.version.version)
-            values.append(tenant.tenant_id.tenant_id)
-        await self._execute(query, tuple(values))
+        await self._executemany(
+            query,
+            [
+                (
+                    tenant.status.value,
+                    tenant.state.value,
+                    tenant.version.version,
+                    tenant.tenant_id.tenant_id,
+                )
+                for tenant in tenants
+            ],
+        )
 
     @handle_domain_errors
-    def _data_to_domain(self, data: tuple[UUID, str, str, int]) -> Tenant:
-        return TenantFactory.restore(*data)
+    def _data_to_domain(self, data: DictRow) -> Tenant:
+        return TenantFactory.restore(
+            data["tenant_id"], data["status"], data["state"], data["version"]
+        )

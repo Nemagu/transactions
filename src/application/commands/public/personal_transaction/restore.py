@@ -47,6 +47,6 @@ class PersonalTransactionRestorationUseCase(BaseUseCase):
             transaction.activate()
             await uow.transaction_repositories.read.save(transaction)
             await uow.transaction_repositories.version.save(
-                transaction, PersonalTransactionEvent.RESTORED
+                transaction, PersonalTransactionEvent.RESTORED, initiator
             )
             return PersonalTransactionSimpleDTO.from_domain(transaction)

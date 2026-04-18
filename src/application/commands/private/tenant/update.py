@@ -7,7 +7,9 @@ from domain.tenant import Tenant, TenantState
 class TenantUpdateUseCase(BaseUseCase):
     async def execute(self) -> None:
         async with self._uow as uow:
-            tenant_match_user = await uow.subscription_repositories.common.new_users_versions_for_tenants()
+            tenant_match_user = (
+                await uow.tenant_repositories.subscription.new_users_versions()
+            )
             if len(tenant_match_user) == 0:
                 return
             edited_tenants_and_events: list[
@@ -34,6 +36,6 @@ class TenantUpdateUseCase(BaseUseCase):
                 await uow.tenant_repositories.version.batch_save(
                     edited_tenants_and_events
                 )
-            await uow.subscription_repositories.common.batch_processed_version(
+            await uow.tenant_repositories.subscription.batch_processed_version(
                 tenant_match_user
             )

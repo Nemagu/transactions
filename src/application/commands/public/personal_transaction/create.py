@@ -74,6 +74,6 @@ class PersonalTransactionCreationUseCase(BaseUseCase):
             transaction.validate_categories((categories))
             await uow.transaction_repositories.read.save(transaction)
             await uow.transaction_repositories.version.save(
-                transaction, PersonalTransactionEvent.CREATED
+                transaction, PersonalTransactionEvent.CREATED, initiator
             )
             return PersonalTransactionSimpleDTO.from_domain(transaction)

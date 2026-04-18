@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid7
 
 import pytest
 
@@ -7,7 +7,7 @@ from domain.tenant.value_objects import TenantID, TenantState, TenantStatus
 
 
 def test_tenant_id_keeps_uuid_value() -> None:
-    value = uuid4()
+    value = uuid7()
 
     tenant_id = TenantID(value)
 

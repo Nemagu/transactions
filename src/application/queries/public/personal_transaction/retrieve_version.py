@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from application.dto import PersonalTransactionSimpleDTO
+from application.dto import (
+    PersonalTransactionVersionSimpleDTO,
+)
 from application.errors import AppInvalidDataError
 from application.queries.base import BaseUseCase
 from domain.personal_transaction import (
@@ -22,7 +24,7 @@ class PersonalTransactionVersionQuery:
 class PersonalTransactionVersionUseCase(BaseUseCase):
     async def execute(
         self, query: PersonalTransactionVersionQuery
-    ) -> PersonalTransactionSimpleDTO:
+    ) -> PersonalTransactionVersionSimpleDTO:
         action = "получение версии транзакции"
         async with self._uow as uow:
             initiator_id = TenantID(query.user_id)
@@ -45,5 +47,8 @@ class PersonalTransactionVersionUseCase(BaseUseCase):
                     action=action,
                     data={"transaction": {"transaction_id": query.transaction_id}},
                 )
+            transaction, event, editor_id, created_at = transaction
             PersonalTransactionPolicyService().raise_owner(initiator, transaction)
-            return PersonalTransactionSimpleDTO.from_domain(transaction)
+            return PersonalTransactionVersionSimpleDTO.from_domain(
+                transaction, event, editor_id, created_at
+            )

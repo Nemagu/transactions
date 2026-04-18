@@ -4,7 +4,7 @@ from functools import wraps
 from typing import Any, Iterable, LiteralString
 
 from psycopg import AsyncConnection, Error
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 from psycopg.sql import SQL, Composed, Identifier
 
 from application.dto import LimitOffsetPaginator
@@ -41,11 +41,6 @@ def handle_domain_errors(func):
 
 
 @dataclass
-class SubscripitonTables:
-    common: str
-
-
-@dataclass
 class ProjectionTables:
     read: str
 
@@ -56,18 +51,35 @@ class PrivateAggregateTables:
     version: str
 
 
+@dataclass
+class TenantTables(PrivateAggregateTables):
+    subscription: str
+
+
+@dataclass
+class PersonalTransactionTables(PrivateAggregateTables):
+    categories: PrivateAggregateTables
+
+
 class BasePostgresRepository(ABC):
-    _subscription_tables = SubscripitonTables("subsctipions")
+    _table_with_tables = "transactions_tables"
     _user_tables = ProjectionTables("users")
-    _tenant_tables = PrivateAggregateTables("tenants", "tenants_versions")
-    _category_tables = PrivateAggregateTables(
-        "transasction_categories", "transasction_categories_versions"
+    _tenant_tables = TenantTables(
+        "tenants", "tenants_versions", "tenants_subscriptions"
     )
-    _transaction_tables = PrivateAggregateTables(
-        "personal_transactions", "personal_transactions_versions"
+    _category_tables = PrivateAggregateTables(
+        "transaction_categories", "transaction_categories_versions"
+    )
+    _transaction_tables = PersonalTransactionTables(
+        "personal_transactions",
+        "personal_transactions_versions",
+        PrivateAggregateTables(
+            "personal_transaction_categories",
+            "personal_transaction_categories_versions",
+        ),
     )
 
-    def __init__(self, conn: AsyncConnection):
+    def __init__(self, conn: AsyncConnection[DictRow]):
         self._conn = conn
 
     @handle_db_errors
@@ -93,7 +105,7 @@ class BasePostgresRepository(ABC):
         self,
         query: bytes | LiteralString | SQL | Composed,
         params: tuple | None = None,
-    ) -> TupleRow | None:
+    ) -> DictRow | None:
         async with self._conn.cursor() as cur:
             await cur.execute(query, params)
             return await cur.fetchone()
@@ -103,7 +115,7 @@ class BasePostgresRepository(ABC):
         self,
         query: bytes | LiteralString | SQL | Composed,
         params: tuple | None = None,
-    ) -> list[TupleRow]:
+    ) -> list[DictRow]:
         async with self._conn.cursor() as cur:
             await cur.execute(query, params)
             return await cur.fetchall()
@@ -113,7 +125,7 @@ class BasePostgresRepository(ABC):
     ) -> int:
         count_query = SQL(
             """
-            SELECT COUNT(*)
+            SELECT COUNT(*) AS count_rows
             FROM {}
             """
         ).format(Identifier(table_name))
@@ -122,7 +134,7 @@ class BasePostgresRepository(ABC):
         if count is None:
             return 0
         else:
-            return count[0]
+            return count["count_rows"]
 
     def _extend_query_with_limit_offset(
         self,
@@ -130,7 +142,7 @@ class BasePostgresRepository(ABC):
         conditions: SQL | Composed,
         params: list[Any],
         paginator: LimitOffsetPaginator,
-        order_by: SQL | Composed = SQL("id"),
+        order_by: SQL | Composed = SQL("version"),
     ) -> tuple[SQL | Composed, list[Any]]:
         query = SQL(" ").join(
             (query, conditions, SQL("ORDER BY"), order_by, SQL("LIMIT %s OFFSET %s"))

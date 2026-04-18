@@ -47,6 +47,6 @@ class PersonalTransactionDeletionUseCase(BaseUseCase):
             transaction.delete()
             await uow.transaction_repositories.read.save(transaction)
             await uow.transaction_repositories.version.save(
-                transaction, PersonalTransactionEvent.DELETED
+                transaction, PersonalTransactionEvent.DELETED, initiator
             )
             return PersonalTransactionSimpleDTO.from_domain(transaction)

@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from application.dto import LimitOffsetPaginator, TransactionCategorySimpleDTO
+from application.dto import (
+    LimitOffsetPaginator,
+    TransactionCategoryVersionSimpleDTO,
+)
 from application.errors import AppInvalidDataError
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID
@@ -26,7 +29,7 @@ class TransactionCategoryVersionsQuery:
 class TransactionCategoryVersionsUseCase(BaseUseCase):
     async def execute(
         self, query: TransactionCategoryVersionsQuery
-    ) -> tuple[list[TransactionCategorySimpleDTO], int]:
+    ) -> tuple[list[TransactionCategoryVersionSimpleDTO], int]:
         action = "получение версий категории транзакции"
         async with self._uow as uow:
             initiator_id = TenantID(query.user_id)
@@ -42,12 +45,16 @@ class TransactionCategoryVersionsUseCase(BaseUseCase):
             categories, count = await uow.category_repositories.version.filters(
                 **filtering_data
             )
+            if count == 0:
+                return list(), count
             service = TransactionCategoryPolicyService()
-            for category in categories:
+            for category, _, _, _ in categories:
                 service.raise_owner(initiator, category)
             return [
-                TransactionCategorySimpleDTO.from_domain(category)
-                for category in categories
+                TransactionCategoryVersionSimpleDTO.from_domain(
+                    category, event, editor_id, created_at
+                )
+                for category, event, editor_id, created_at in categories
             ], count
 
     def _cast_data_from_query(

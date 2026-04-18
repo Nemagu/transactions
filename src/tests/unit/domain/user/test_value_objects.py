@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid7
 
 import pytest
 
@@ -7,7 +7,7 @@ from domain.user.value_objects import UserID, UserState
 
 
 def test_user_id_keeps_uuid_value() -> None:
-    value = uuid4()
+    value = uuid7()
 
     user_id = UserID(value)
 

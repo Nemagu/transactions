@@ -5,10 +5,6 @@ from typing import Self
 
 from application.dto import (
     LimitOffsetPaginator,
-    PersonalTransactionDetailDTO,
-    PersonalTransactionSimpleDTO,
-    PersonalTransactionVersionDetailDTO,
-    PersonalTransactionVersionSimpleDTO,
 )
 from application.errors import AppInternalError
 from domain.personal_transaction import (
@@ -16,6 +12,7 @@ from domain.personal_transaction import (
     PersonalTransaction,
     PersonalTransactionID,
     PersonalTransactionTime,
+    PersonalTransactionType,
 )
 from domain.tenant import Tenant, TenantID
 from domain.transaction_category import TransactionCategoryID
@@ -56,43 +53,13 @@ class PersonalTransactionReadRepository(ABC):
         paginator: LimitOffsetPaginator,
         transaction_ids: list[PersonalTransactionID] | None,
         category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[str] | None,
+        transaction_types: list[PersonalTransactionType] | None,
         from_money_amount: MoneyAmount | None,
         to_money_amount: MoneyAmount | None,
         from_transaction_time: PersonalTransactionTime | None,
         to_transaction_time: PersonalTransactionTime | None,
         states: list[State] | None,
     ) -> tuple[list[PersonalTransaction], int]: ...
-
-    @abstractmethod
-    async def filters_to_simple_dto(
-        self,
-        owner_id: TenantID,
-        paginator: LimitOffsetPaginator,
-        transaction_ids: list[PersonalTransactionID] | None,
-        category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[str] | None,
-        from_money_amount: MoneyAmount | None,
-        to_money_amount: MoneyAmount | None,
-        from_transaction_time: PersonalTransactionTime | None,
-        to_transaction_time: PersonalTransactionTime | None,
-        states: list[State] | None,
-    ) -> tuple[list[PersonalTransactionSimpleDTO], int]: ...
-
-    @abstractmethod
-    async def filters_to_detail_dto(
-        self,
-        owner_id: TenantID,
-        paginator: LimitOffsetPaginator,
-        transaction_ids: list[PersonalTransactionID] | None,
-        category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[str] | None,
-        from_money_amount: MoneyAmount | None,
-        to_money_amount: MoneyAmount | None,
-        from_transaction_time: PersonalTransactionTime | None,
-        to_transaction_time: PersonalTransactionTime | None,
-        states: list[State] | None,
-    ) -> tuple[list[PersonalTransactionDetailDTO], int]: ...
 
     @abstractmethod
     async def save(self, transaction: PersonalTransaction) -> None: ...
@@ -103,7 +70,7 @@ class PersonalTransactionVersionRepository(ABC):
     async def by_id_version(
         self, transaction_id: PersonalTransactionID, version: Version
     ) -> (
-        tuple[PersonalTransaction, PersonalTransactionEvent, Tenant | None, datetime]
+        tuple[PersonalTransaction, PersonalTransactionEvent, TenantID | None, datetime]
         | None
     ): ...
 
@@ -114,7 +81,7 @@ class PersonalTransactionVersionRepository(ABC):
         paginator: LimitOffsetPaginator,
         transaction_ids: list[PersonalTransactionID] | None,
         category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[str] | None,
+        transaction_types: list[PersonalTransactionType] | None,
         from_money_amount: MoneyAmount | None,
         to_money_amount: MoneyAmount | None,
         from_transaction_time: PersonalTransactionTime | None,
@@ -125,53 +92,16 @@ class PersonalTransactionVersionRepository(ABC):
     ) -> tuple[
         list[
             tuple[
-                PersonalTransaction, PersonalTransactionEvent, Tenant | None, datetime
+                PersonalTransaction, PersonalTransactionEvent, TenantID | None, datetime
             ]
         ],
         int,
     ]: ...
 
     @abstractmethod
-    async def filters_to_simple_dto(
-        self,
-        owner_id: TenantID,
-        paginator: LimitOffsetPaginator,
-        transaction_ids: list[PersonalTransactionID] | None,
-        category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[str] | None,
-        from_money_amount: MoneyAmount | None,
-        to_money_amount: MoneyAmount | None,
-        from_transaction_time: PersonalTransactionTime | None,
-        to_transaction_time: PersonalTransactionTime | None,
-        states: list[State] | None,
-        from_version: Version | None,
-        to_version: Version | None,
-    ) -> tuple[
-        list[PersonalTransactionVersionSimpleDTO],
-        int,
-    ]: ...
-
-    @abstractmethod
-    async def filters_to_detail_dto(
-        self,
-        owner_id: TenantID,
-        paginator: LimitOffsetPaginator,
-        transaction_ids: list[PersonalTransactionID] | None,
-        category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[str] | None,
-        from_money_amount: MoneyAmount | None,
-        to_money_amount: MoneyAmount | None,
-        from_transaction_time: PersonalTransactionTime | None,
-        to_transaction_time: PersonalTransactionTime | None,
-        states: list[State] | None,
-        from_version: Version | None,
-        to_version: Version | None,
-    ) -> tuple[
-        list[PersonalTransactionVersionDetailDTO],
-        int,
-    ]: ...
-
-    @abstractmethod
     async def save(
-        self, transaction: PersonalTransaction, event: PersonalTransactionEvent
+        self,
+        transaction: PersonalTransaction,
+        event: PersonalTransactionEvent,
+        editor: Tenant | None,
     ) -> None: ...

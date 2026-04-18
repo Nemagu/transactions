@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from uuid import uuid4
+from uuid import uuid7
 
 import pytest
 
@@ -27,7 +27,7 @@ def transaction_category_factory(
         version: int = 1,
     ) -> TransactionCategory:
         return TransactionCategory(
-            category_id=category_id or TransactionCategoryID(uuid4()),
+            category_id=category_id or TransactionCategoryID(uuid7()),
             owner_id=owner_id or tenant_id_factory(),
             name=TransactionCategoryName(name),
             description=TransactionCategoryDescription(description),
