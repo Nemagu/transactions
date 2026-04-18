@@ -27,7 +27,7 @@ from domain.value_objects import State
 
 @dataclass
 class PersonalTransactionLastVersionsQuery:
-    user_id: UUID
+    initiator_id: UUID
     paginator: LimitOffsetPaginator
     transaction_ids: list[UUID] | None
     category_ids: list[UUID] | None
@@ -45,14 +45,14 @@ class PersonalTransactionLastVersionsUseCase(BaseUseCase):
     ) -> tuple[list[PersonalTransactionSimpleDTO], int]:
         action = "получение последних версий транзакций"
         async with self._uow as uow:
-            initiator_id = TenantID(query.user_id)
+            initiator_id = TenantID(query.initiator_id)
             filtering_data = self._cast_data_from_query(query)
             initiator = await uow.tenant_repositories.read.by_id(initiator_id)
             if initiator is None:
                 raise AppInvalidDataError(
                     msg="инициатор не существует",
                     action=action,
-                    data={"tenant": {"tenant_id": query.user_id}},
+                    data={"tenant": {"tenant_id": query.initiator_id}},
                 )
             initiator.raise_access_read()
             transactions, count = await uow.transaction_repositories.read.filters(
@@ -69,7 +69,7 @@ class PersonalTransactionLastVersionsUseCase(BaseUseCase):
     def _cast_data_from_query(
         self, query: PersonalTransactionLastVersionsQuery
     ) -> dict[str, Any]:
-        data = {"paginator": query.paginator, "owner_id": TenantID(query.user_id)}
+        data = {"paginator": query.paginator, "owner_id": TenantID(query.initiator_id)}
         if query.transaction_ids is not None:
             data["transaction_ids"] = [
                 PersonalTransactionID(transaction_id)

@@ -3,9 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
-from application.dto import (
-    LimitOffsetPaginator,
-)
+from application.dto.paginators import LimitOffsetPaginator
 from application.errors import AppInternalError
 from domain.personal_transaction import (
     MoneyAmount,
@@ -51,14 +49,14 @@ class PersonalTransactionReadRepository(ABC):
         self,
         owner_id: TenantID,
         paginator: LimitOffsetPaginator,
-        transaction_ids: list[PersonalTransactionID] | None,
-        category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[PersonalTransactionType] | None,
-        from_money_amount: MoneyAmount | None,
-        to_money_amount: MoneyAmount | None,
-        from_transaction_time: PersonalTransactionTime | None,
-        to_transaction_time: PersonalTransactionTime | None,
-        states: list[State] | None,
+        transaction_ids: list[PersonalTransactionID] | None = None,
+        category_ids: list[TransactionCategoryID] | None = None,
+        transaction_types: list[PersonalTransactionType] | None = None,
+        from_money_amount: MoneyAmount | None = None,
+        to_money_amount: MoneyAmount | None = None,
+        from_transaction_time: PersonalTransactionTime | None = None,
+        to_transaction_time: PersonalTransactionTime | None = None,
+        states: list[State] | None = None,
     ) -> tuple[list[PersonalTransaction], int]: ...
 
     @abstractmethod
@@ -79,16 +77,16 @@ class PersonalTransactionVersionRepository(ABC):
         self,
         owner_id: TenantID,
         paginator: LimitOffsetPaginator,
-        transaction_ids: list[PersonalTransactionID] | None,
-        category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[PersonalTransactionType] | None,
-        from_money_amount: MoneyAmount | None,
-        to_money_amount: MoneyAmount | None,
-        from_transaction_time: PersonalTransactionTime | None,
-        to_transaction_time: PersonalTransactionTime | None,
-        states: list[State] | None,
-        from_version: Version | None,
-        to_version: Version | None,
+        transaction_id: PersonalTransactionID,
+        category_ids: list[TransactionCategoryID] | None = None,
+        transaction_types: list[PersonalTransactionType] | None = None,
+        from_money_amount: MoneyAmount | None = None,
+        to_money_amount: MoneyAmount | None = None,
+        from_transaction_time: PersonalTransactionTime | None = None,
+        to_transaction_time: PersonalTransactionTime | None = None,
+        states: list[State] | None = None,
+        from_version: Version | None = None,
+        to_version: Version | None = None,
     ) -> tuple[
         list[
             tuple[

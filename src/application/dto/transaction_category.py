@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Self
+from typing import TYPE_CHECKING, Self
 from uuid import UUID
 
-from application.ports.repositories.transaction_category import TransactionCategoryEvent
 from domain.tenant import TenantID
 from domain.transaction_category import TransactionCategory
+
+if TYPE_CHECKING:
+    from application.ports.repositories.transaction_category import (
+        TransactionCategoryEvent,
+    )
 
 
 @dataclass(slots=True)
@@ -45,7 +49,7 @@ class TransactionCategoryVersionSimpleDTO:
     def from_domain(
         cls,
         category: TransactionCategory,
-        event: TransactionCategoryEvent,
+        event: "TransactionCategoryEvent",
         editor_id: TenantID | None,
         created_at: datetime,
     ) -> Self:

@@ -45,23 +45,28 @@ async def test_transaction_category_queries_use_cases(
         version=2,
     )
     await category_read_repo.save(category_v1)
-    await category_version_repo.save(category_v1, TransactionCategoryEvent.CREATED, None)
+    await category_version_repo.save(
+        category_v1, TransactionCategoryEvent.CREATED, None
+    )
     await category_read_repo.save(category_v2)
-    await category_version_repo.save(category_v2, TransactionCategoryEvent.UPDATED, None)
+    await category_version_repo.save(
+        category_v2, TransactionCategoryEvent.UPDATED, None
+    )
 
     last_versions, last_count = await TransactionCategoryLastVersionsUseCase(
         uow_factory()
     ).execute(
         TransactionCategoryLastVersionsQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
+            category_ids=None,
             names=["travel"],
             states=[State.ACTIVE.value],
         )
     )
     last_version = await TransactionCategoryLastVersionUseCase(uow_factory()).execute(
         TransactionCategoryLastVersionQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             category_id=category_v1.category_id.category_id,
         )
     )
@@ -69,8 +74,9 @@ async def test_transaction_category_queries_use_cases(
         uow_factory()
     ).execute(
         TransactionCategoryVersionsQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
+            category_id=category_v1.category_id.category_id,
             names=[],
             states=[],
             from_version=1,
@@ -79,7 +85,7 @@ async def test_transaction_category_queries_use_cases(
     )
     version = await TransactionCategoryVersionUseCase(uow_factory()).execute(
         TransactionCategoryVersionQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             category_id=category_v1.category_id.category_id,
             version=1,
         )

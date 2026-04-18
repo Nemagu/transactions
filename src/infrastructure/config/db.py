@@ -1,9 +1,10 @@
 from os import path
+from typing import Self
 
-from msgspec import Struct, field
+from pydantic import BaseModel, Field, model_validator
 
 
-class PostgresPoolSettings(Struct):
+class PostgresPoolSettings(BaseModel):
     min_size: int = 10
     max_size: int = 20
     max_inactive_connection_lifetime: int = 300
@@ -11,18 +12,20 @@ class PostgresPoolSettings(Struct):
     timeout: int = 20
 
 
-class PostgresSettings(Struct):
+class PostgresSettings(BaseModel):
     host: str = "localhost"
     port: int = 5432
     user: str = "companies_service"
     password_file: str = "/tmp/transactions/db_password"
     database: str = "companies_service"
 
-    pool: PostgresPoolSettings = field(default_factory=PostgresPoolSettings)
+    pool: PostgresPoolSettings = Field(default_factory=PostgresPoolSettings)
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_password_file(self) -> Self:
         if not path.isfile(self.password_file):
             raise ValueError(f"Password file not found: {self.password_file}")
+        return self
 
     @property
     def password(self) -> str:

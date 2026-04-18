@@ -114,6 +114,7 @@ async def test_filters_by_version_name_and_state(
     data, count = await category_version_repo.filters(
         owner_id=version_1.owner_id,
         paginator=LimitOffsetPaginator(limit=10, offset=0),
+        category_id=version_1.category_id,
         names=names,
         states=states,
         from_version=from_version,

@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.errors import AppInternalError
 from domain.tenant import Tenant, TenantID
 from domain.transaction_category import (
@@ -54,8 +54,9 @@ class TransactionCategoryReadRepository(DomainTransactionCategoryReadRepository)
         self,
         owner_id: TenantID,
         paginator: LimitOffsetPaginator,
-        names: list[TransactionCategoryName] | None,
-        states: list[State] | None,
+        category_ids: list[TransactionCategoryID] | None = None,
+        names: list[TransactionCategoryName] | None = None,
+        states: list[State] | None = None,
     ) -> tuple[list[TransactionCategory], int]: ...
 
     @abstractmethod
@@ -76,10 +77,11 @@ class TransactionCategoryVersionRepository(ABC):
         self,
         owner_id: TenantID,
         paginator: LimitOffsetPaginator,
-        names: list[TransactionCategoryName] | None,
-        states: list[State] | None,
-        from_version: Version | None,
-        to_version: Version | None,
+        category_id: TransactionCategoryID,
+        names: list[TransactionCategoryName] | None = None,
+        states: list[State] | None = None,
+        from_version: Version | None = None,
+        to_version: Version | None = None,
     ) -> tuple[
         list[
             tuple[
@@ -94,5 +96,5 @@ class TransactionCategoryVersionRepository(ABC):
         self,
         category: TransactionCategory,
         event: TransactionCategoryEvent,
-        editor: Tenant | None,
+        editor: Tenant | None = None,
     ) -> None: ...

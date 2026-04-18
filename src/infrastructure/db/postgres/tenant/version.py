@@ -36,10 +36,10 @@ class TenantVersionPostgresRepository(BasePostgresRepository, TenantVersionRepos
         self,
         paginator: LimitOffsetPaginator,
         tenant_id: TenantID,
-        statuses: list[TenantStatus] | None,
-        states: list[TenantState] | None,
-        from_version: Version | None,
-        to_version: Version | None,
+        statuses: list[TenantStatus] | None = None,
+        states: list[TenantState] | None = None,
+        from_version: Version | None = None,
+        to_version: Version | None = None,
     ) -> tuple[list[tuple[Tenant, TenantEvent, TenantID | None, datetime]], int]:
         conditions, params = self._init_conditions_with_params(
             tenant_id, statuses, states, from_version, to_version

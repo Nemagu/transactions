@@ -10,7 +10,7 @@ from domain.tenant import TenantID, TenantState, TenantStatus
 
 @dataclass
 class TenantLastVersionsQuery:
-    user_id: UUID
+    initiator_id: UUID
     paginator: LimitOffsetPaginator
     tenant_ids: list[UUID] | None
     statuses: list[str] | None
@@ -23,19 +23,19 @@ class TenantLastVersionsUseCase(BaseUseCase):
     ) -> tuple[list[TenantSimpleDTO], int]:
         action = "получение последних версий арендаторов"
         async with self._uow as uow:
-            initiator_id = TenantID(query.user_id)
+            initiator_id = TenantID(query.initiator_id)
             filtering_data = self._cast_data_from_query(query)
             initiator = await uow.tenant_repositories.read.by_id(initiator_id)
             if initiator is None:
                 raise AppInvalidDataError(
                     msg="инициатор не существует",
                     action=action,
-                    data={"tenant": {"tenant_id": query.user_id}},
+                    data={"tenant": {"tenant_id": query.initiator_id}},
                 )
             if (
                 query.tenant_ids is not None
                 and len(query.tenant_ids) == 1
-                and query.user_id == query.tenant_ids[0]
+                and query.initiator_id == query.tenant_ids[0]
             ):
                 initiator.raise_access_read()
             else:

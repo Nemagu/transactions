@@ -13,7 +13,7 @@ from domain.tenant import TenantID
 
 @dataclass
 class PersonalTransactionLastVersionQuery:
-    user_id: UUID
+    initiator_id: UUID
     transaction_id: UUID
 
 
@@ -23,14 +23,14 @@ class PersonalTransactionLastVersionUseCase(BaseUseCase):
     ) -> PersonalTransactionSimpleDTO:
         action = "получение последней версии транзакции"
         async with self._uow as uow:
-            initiator_id = TenantID(query.user_id)
+            initiator_id = TenantID(query.initiator_id)
             transaction_id = PersonalTransactionID(query.transaction_id)
             initiator = await uow.tenant_repositories.read.by_id(initiator_id)
             if initiator is None:
                 raise AppInvalidDataError(
                     msg="инициатор не существует",
                     action=action,
-                    data={"tenant": {"tenant_id": query.user_id}},
+                    data={"tenant": {"tenant_id": query.initiator_id}},
                 )
             initiator.raise_access_read()
             transaction = await uow.transaction_repositories.read.by_id(transaction_id)

@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Self
+from typing import TYPE_CHECKING, Self
 from uuid import UUID
 
-from application.ports.repositories.tenant import TenantEvent
 from domain.tenant import Tenant, TenantID
+
+if TYPE_CHECKING:
+    from application.ports.repositories.tenant import TenantEvent
 
 
 @dataclass(slots=True)
@@ -38,7 +40,7 @@ class TenantVersionSimpleDTO:
     def from_domain(
         cls,
         tenant: Tenant,
-        event: TenantEvent,
+        event: "TenantEvent",
         editor_id: TenantID | None,
         created_at: datetime,
     ) -> Self:
@@ -67,7 +69,7 @@ class TenantVersionDetailDTO:
     def from_domain(
         cls,
         tenant: Tenant,
-        event: TenantEvent,
+        event: "TenantEvent",
         editor: Tenant | None,
         created_at: datetime,
     ) -> Self:

@@ -52,10 +52,11 @@ class TransactionCategoryVersionPostgresRepository(
         self,
         owner_id: TenantID,
         paginator: LimitOffsetPaginator,
-        names: list[TransactionCategoryName] | None,
-        states: list[State] | None,
-        from_version: Version | None,
-        to_version: Version | None,
+        category_id: TransactionCategoryID,
+        names: list[TransactionCategoryName] | None = None,
+        states: list[State] | None = None,
+        from_version: Version | None = None,
+        to_version: Version | None = None,
     ) -> tuple[
         list[
             tuple[
@@ -65,7 +66,7 @@ class TransactionCategoryVersionPostgresRepository(
         int,
     ]:
         conditions, params = self._init_conditions_with_params(
-            owner_id, names, states, from_version, to_version
+            owner_id, category_id, names, states, from_version, to_version
         )
         count = await self._count_rows(
             conditions, params, self._category_tables.version
@@ -99,7 +100,7 @@ class TransactionCategoryVersionPostgresRepository(
         self,
         category: TransactionCategory,
         event: TransactionCategoryEvent,
-        editor: Tenant | None,
+        editor: Tenant | None = None,
     ) -> None:
         await self._create(category, event, editor)
 
@@ -162,13 +163,14 @@ class TransactionCategoryVersionPostgresRepository(
     def _init_conditions_with_params(
         self,
         owner_id: TenantID,
+        category_id: TransactionCategoryID,
         names: list[TransactionCategoryName] | None,
         states: list[State] | None,
         from_version: Version | None,
         to_version: Version | None,
     ) -> tuple[SQL | Composed, list[Any]]:
-        conditions = [SQL("WHERE owner_id = %s")]
-        params: list[Any] = [owner_id.tenant_id]
+        conditions = [SQL("WHERE owner_id = %s AND category_id = %s")]
+        params: list[Any] = [owner_id.tenant_id, category_id.category_id]
         if names:
             conditions.append(SQL("name = ANY(%s)"))
             params.append([name.name for name in names])

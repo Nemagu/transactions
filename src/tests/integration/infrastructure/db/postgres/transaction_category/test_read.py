@@ -36,31 +36,35 @@ async def test_save_by_id_and_by_owner_name(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("names", "states", "expected_names"),
+    ("category_keys", "names", "states", "expected_names"),
     [
         (
+            None,
             [TransactionCategoryName("travel")],
             [State.ACTIVE],
             {"travel"},
         ),
         (
             None,
+            None,
             [State.DELETED],
             {"archive"},
         ),
         (
+            ("food", "travel"),
             [TransactionCategoryName("food"), TransactionCategoryName("travel")],
             None,
             {"food", "travel"},
         ),
     ],
-    ids=["name+active", "deleted-only", "many-names"],
+    ids=["name+active", "deleted-only", "category-ids+names"],
 )
 async def test_filters_and_update(
     category_read_repo,
     tenant_read_repo,
     category_factory,
     tenant_factory,
+    category_keys: tuple[str, ...] | None,
     names: list[TransactionCategoryName] | None,
     states: list[State] | None,
     expected_names: set[str],
@@ -82,9 +86,21 @@ async def test_filters_and_update(
     archive.delete()
     await category_read_repo.save(archive)
 
+    categories_map = {
+        "food": food.category_id,
+        "travel": travel.category_id,
+        "archive": archive.category_id,
+    }
+    category_ids = (
+        [categories_map[item] for item in category_keys]
+        if category_keys is not None
+        else None
+    )
+
     data, count = await category_read_repo.filters(
         owner_id=food.owner_id,
         paginator=LimitOffsetPaginator(limit=10, offset=0),
+        category_ids=category_ids,
         names=names,
         states=states,
     )

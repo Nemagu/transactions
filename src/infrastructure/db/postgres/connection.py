@@ -51,6 +51,6 @@ class PostgresConnectionManager:
         except BaseException as err:
             raise AppInternalError(
                 msg=f"ошибка при закрытии пулла соединений: {err}",
-                action="попытка зкрытия пула подключений postgres",
+                action="попытка закрытия пула подключений postgres",
                 wrap_error=err,
             )

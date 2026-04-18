@@ -89,16 +89,16 @@ class PersonalTransactionVersionPostgresRepository(
         self,
         owner_id: TenantID,
         paginator: LimitOffsetPaginator,
-        transaction_ids: list[PersonalTransactionID] | None,
-        category_ids: list[TransactionCategoryID] | None,
-        transaction_types: list[PersonalTransactionType] | None,
-        from_money_amount: MoneyAmount | None,
-        to_money_amount: MoneyAmount | None,
-        from_transaction_time: PersonalTransactionTime | None,
-        to_transaction_time: PersonalTransactionTime | None,
-        states: list[State] | None,
-        from_version: Version | None,
-        to_version: Version | None,
+        transaction_id: PersonalTransactionID,
+        category_ids: list[TransactionCategoryID] | None = None,
+        transaction_types: list[PersonalTransactionType] | None = None,
+        from_money_amount: MoneyAmount | None = None,
+        to_money_amount: MoneyAmount | None = None,
+        from_transaction_time: PersonalTransactionTime | None = None,
+        to_transaction_time: PersonalTransactionTime | None = None,
+        states: list[State] | None = None,
+        from_version: Version | None = None,
+        to_version: Version | None = None,
     ) -> tuple[
         list[
             tuple[
@@ -109,7 +109,7 @@ class PersonalTransactionVersionPostgresRepository(
     ]:
         conditions, params = self._init_conditions_with_params(
             owner_id,
-            transaction_ids,
+            transaction_id,
             category_ids,
             transaction_types,
             from_money_amount,
@@ -193,7 +193,7 @@ class PersonalTransactionVersionPostgresRepository(
         self,
         transaction: PersonalTransaction,
         event: PersonalTransactionEvent,
-        editor: Tenant | None,
+        editor: Tenant | None = None,
     ) -> None:
         await self._create(transaction, event, editor)
 
@@ -300,7 +300,7 @@ class PersonalTransactionVersionPostgresRepository(
     def _init_conditions_with_params(
         self,
         owner_id: TenantID,
-        transaction_ids: list[PersonalTransactionID] | None,
+        transaction_id: PersonalTransactionID,
         category_ids: list[TransactionCategoryID] | None,
         transaction_types: list[PersonalTransactionType] | None,
         from_money_amount: MoneyAmount | None,
@@ -311,13 +311,8 @@ class PersonalTransactionVersionPostgresRepository(
         from_version: Version | None,
         to_version: Version | None,
     ) -> tuple[SQL | Composed, list[Any]]:
-        conditions = [SQL("WHERE t.owner_id = %s")]
-        params: list[Any] = [owner_id.tenant_id]
-        if transaction_ids:
-            conditions.append(SQL("t.transaction_id = ANY(%s)"))
-            params.append(
-                [transaction_id.transaction_id for transaction_id in transaction_ids]
-            )
+        conditions = [SQL("WHERE t.owner_id = %s AND t.transaction_id = %s")]
+        params: list[Any] = [owner_id.tenant_id, transaction_id.transaction_id]
         if category_ids:
             conditions.append(SQL("tc.category_id = ANY(%s)"))
             params.append([category_id.category_id for category_id in category_ids])

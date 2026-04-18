@@ -171,7 +171,7 @@ async def test_filters_count_distinct_versions(
     versions, count = await transaction_version_repo.filters(
         owner_id=owner.tenant_id,
         paginator=LimitOffsetPaginator(limit=10, offset=0),
-        transaction_ids=None,
+        transaction_id=first_version.transaction_id,
         category_ids=category_ids,
         transaction_types=transaction_types,
         from_money_amount=None,

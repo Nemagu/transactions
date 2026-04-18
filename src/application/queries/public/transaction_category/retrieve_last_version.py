@@ -13,7 +13,7 @@ from domain.transaction_category import (
 
 @dataclass
 class TransactionCategoryLastVersionQuery:
-    user_id: UUID
+    initiator_id: UUID
     category_id: UUID
 
 
@@ -23,14 +23,14 @@ class TransactionCategoryLastVersionUseCase(BaseUseCase):
     ) -> TransactionCategorySimpleDTO:
         action = "получение последней версии категории транзакций"
         async with self._uow as uow:
-            initiator_id = TenantID(query.user_id)
+            initiator_id = TenantID(query.initiator_id)
             category_id = TransactionCategoryID(query.category_id)
             initiator = await uow.tenant_repositories.read.by_id(initiator_id)
             if initiator is None:
                 raise AppInvalidDataError(
                     msg="инициатор не существует",
                     action=action,
-                    data={"tenant": {"tenant_id": query.user_id}},
+                    data={"tenant": {"tenant_id": query.initiator_id}},
                 )
             initiator.raise_access_read()
             category = await uow.category_repositories.read.by_id(category_id)

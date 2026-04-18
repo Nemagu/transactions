@@ -16,7 +16,7 @@ from domain.value_objects import Version
 
 @dataclass
 class TransactionCategoryVersionQuery:
-    user_id: UUID
+    initiator_id: UUID
     category_id: UUID
     version: int
 
@@ -27,7 +27,7 @@ class TransactionCategoryVersionUseCase(BaseUseCase):
     ) -> TransactionCategoryVersionSimpleDTO:
         action = "получение версии категории транзакций"
         async with self._uow as uow:
-            initiator_id = TenantID(query.user_id)
+            initiator_id = TenantID(query.initiator_id)
             category_id = TransactionCategoryID(query.category_id)
             version = Version(query.version)
             initiator = await uow.tenant_repositories.read.by_id(initiator_id)
@@ -35,7 +35,7 @@ class TransactionCategoryVersionUseCase(BaseUseCase):
                 raise AppInvalidDataError(
                     msg="инициатор не существует",
                     action=action,
-                    data={"tenant": {"tenant_id": query.user_id}},
+                    data={"tenant": {"tenant_id": query.initiator_id}},
                 )
             initiator.raise_access_read()
             category = await uow.category_repositories.version.by_id_version(

@@ -1,18 +1,19 @@
 from __future__ import annotations
 
+import os
 import secrets
 import shutil
 import socket
 import subprocess
 import time
+from collections.abc import Generator
 from pathlib import Path
 from uuid import uuid7
 
 import psycopg
 import pytest
-from msgspec import yaml
 
-from infrastructure.config import PostgresSettings
+from infrastructure.config import APISettings, PostgresSettings
 from infrastructure.db.postgres.apply_migrations import apply_migrations
 
 TEST_DB_DIR = Path("/tmp/transactions/test-db")
@@ -43,16 +44,17 @@ DOCKER_COMPOSE_TEMPLATE = """services:
       start_period: 2s
 """
 
-POSTGRES_CONFIG_TEMPLATE = """port: {postgres_port}
-user: {postgres_user}
-database: {postgres_db}
-password_file: {password_file}
-pool:
-  min_size: 1
-  max_size: 5
-  max_inactive_connection_lifetime: 60
-  max_connection_lifetime: 300
-  timeout: 10
+POSTGRES_CONFIG_TEMPLATE = """db:
+  port: {postgres_port}
+  user: {postgres_user}
+  database: {postgres_db}
+  password_file: {password_file}
+  pool:
+    min_size: 1
+    max_size: 5
+    max_inactive_connection_lifetime: 60
+    max_connection_lifetime: 300
+    timeout: 10
 """
 
 
@@ -116,7 +118,8 @@ def _write_runtime_files(postgres_port: int) -> None:
 def _load_settings() -> PostgresSettings:
     if POSTGRES_CONFIG_FILE is None:
         raise RuntimeError("Файл конфига не подготовлен")
-    return yaml.decode(POSTGRES_CONFIG_FILE.read_bytes(), type=PostgresSettings)
+    settings = APISettings()
+    return settings.db
 
 
 def _wait_postgres_ready(settings: PostgresSettings) -> None:
@@ -139,15 +142,17 @@ def _apply_migrations(settings: PostgresSettings) -> None:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def postgres_service() -> None:
+def postgres_service() -> Generator[None, None, None]:
     global DOCKER_COMPOSE_FILE, POSTGRES_CONFIG_FILE, POSTGRES_PASSWORD_FILE, POSTGRES_PORT
 
+    previous_config_file = os.environ.get("CONFIG_FILE")
     runtime_file_id = uuid7()
     DOCKER_COMPOSE_FILE = TEST_DB_DIR / f"docker-compose-{runtime_file_id}.yml"
     POSTGRES_CONFIG_FILE = TEST_DB_DIR / f"postgres-config-{runtime_file_id}.yaml"
     POSTGRES_PASSWORD_FILE = TEST_DB_DIR / f"db-password-{runtime_file_id}.txt"
     POSTGRES_PORT = _choose_free_port()
     _write_runtime_files(POSTGRES_PORT)
+    os.environ["CONFIG_FILE"] = str(POSTGRES_CONFIG_FILE)
     settings = _load_settings()
 
     _run_compose("up", "-d")
@@ -164,6 +169,10 @@ def postgres_service() -> None:
                     path.unlink(missing_ok=True)
             if TEST_DB_DIR.exists() and len(list(TEST_DB_DIR.iterdir())) == 0:
                 shutil.rmtree(TEST_DB_DIR, ignore_errors=True)
+            if previous_config_file is None:
+                os.environ.pop("CONFIG_FILE", None)
+            else:
+                os.environ["CONFIG_FILE"] = previous_config_file
 
 
 @pytest.fixture(scope="session")

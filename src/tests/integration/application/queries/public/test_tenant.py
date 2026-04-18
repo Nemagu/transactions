@@ -45,7 +45,7 @@ async def test_tenant_queries_use_cases(
 
     last_versions, last_count = await TenantLastVersionsUseCase(uow_factory()).execute(
         TenantLastVersionsQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
             tenant_ids=[target_v2.tenant_id.tenant_id],
             statuses=[TenantStatus.ADMIN.value],
@@ -54,13 +54,13 @@ async def test_tenant_queries_use_cases(
     )
     last_version = await TenantLastVersionUseCase(uow_factory()).execute(
         TenantLastVersionQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             tenant_id=target_v2.tenant_id.tenant_id,
         )
     )
     versions, version_count = await TenantVersionsUseCase(uow_factory()).execute(
         TenantVersionsQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             tenant_id=target_v2.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
             statuses=[],
@@ -71,7 +71,7 @@ async def test_tenant_queries_use_cases(
     )
     version = await TenantVersionUseCase(uow_factory()).execute(
         TenantVersionQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             tenant_id=target_v2.tenant_id.tenant_id,
             version=1,
         )

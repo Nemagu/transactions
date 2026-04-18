@@ -26,9 +26,9 @@ class TenantReadPostgresRepository(BasePostgresRepository, TenantReadRepository)
     async def filters(
         self,
         paginator: LimitOffsetPaginator,
-        tenant_ids: list[TenantID] | None,
-        statuses: list[TenantStatus] | None,
-        states: list[TenantState] | None,
+        tenant_ids: list[TenantID] | None = None,
+        statuses: list[TenantStatus] | None = None,
+        states: list[TenantState] | None = None,
     ) -> tuple[list[Tenant], int]:
         params = list()
         conditions = [SQL("WHERE 1 = 1")]

@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.errors import AppInternalError
 from domain.tenant import Tenant, TenantID, TenantState, TenantStatus
 from domain.tenant import TenantReadRepository as DomainTenantReadRepository
@@ -35,9 +35,9 @@ class TenantReadRepository(DomainTenantReadRepository):
     async def filters(
         self,
         paginator: LimitOffsetPaginator,
-        tenant_ids: list[TenantID] | None,
-        statuses: list[TenantStatus] | None,
-        states: list[TenantState] | None,
+        tenant_ids: list[TenantID] | None = None,
+        statuses: list[TenantStatus] | None = None,
+        states: list[TenantState] | None = None,
     ) -> tuple[list[Tenant], int]: ...
 
     @abstractmethod
@@ -58,10 +58,10 @@ class TenantVersionRepository(ABC):
         self,
         paginator: LimitOffsetPaginator,
         tenant_id: TenantID,
-        statuses: list[TenantStatus] | None,
-        states: list[TenantState] | None,
-        from_version: Version | None,
-        to_version: Version | None,
+        statuses: list[TenantStatus] | None = None,
+        states: list[TenantState] | None = None,
+        from_version: Version | None = None,
+        to_version: Version | None = None,
     ) -> tuple[list[tuple[Tenant, TenantEvent, TenantID | None, datetime]], int]: ...
 
     @abstractmethod

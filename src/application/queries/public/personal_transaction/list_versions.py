@@ -27,9 +27,9 @@ from domain.value_objects import State, Version
 
 @dataclass
 class PersonalTransactionVersionsQuery:
-    user_id: UUID
+    initiator_id: UUID
     paginator: LimitOffsetPaginator
-    transaction_ids: list[UUID] | None
+    transaction_id: UUID
     category_ids: list[UUID] | None
     transaction_types: list[str] | None
     from_money_amount: MoneyAmountDTO | None
@@ -47,14 +47,14 @@ class PersonalTransactionVersionsUseCase(BaseUseCase):
     ) -> tuple[list[PersonalTransactionVersionSimpleDTO], int]:
         action = "получение версий транзакции"
         async with self._uow as uow:
-            initiator_id = TenantID(query.user_id)
+            initiator_id = TenantID(query.initiator_id)
             filtering_data = self._cast_data_from_query(query)
             initiator = await uow.tenant_repositories.read.by_id(initiator_id)
             if initiator is None:
                 raise AppInvalidDataError(
                     msg="инициатор не существует",
                     action=action,
-                    data={"tenant": {"tenant_id": query.user_id}},
+                    data={"tenant": {"tenant_id": query.initiator_id}},
                 )
             initiator.raise_access_read()
             transactions, count = await uow.transaction_repositories.version.filters(
@@ -75,12 +75,11 @@ class PersonalTransactionVersionsUseCase(BaseUseCase):
     def _cast_data_from_query(
         self, query: PersonalTransactionVersionsQuery
     ) -> dict[str, Any]:
-        data = {"paginator": query.paginator, "owner_id": TenantID(query.user_id)}
-        if query.transaction_ids is not None:
-            data["transaction_ids"] = [
-                PersonalTransactionID(transaction_id)
-                for transaction_id in query.transaction_ids
-            ]
+        data = {
+            "paginator": query.paginator,
+            "owner_id": TenantID(query.initiator_id),
+            "transaction_id": PersonalTransactionID(query.transaction_id),
+        }
         if query.category_ids is not None:
             data["category_ids"] = [
                 TransactionCategoryID(category_id) for category_id in query.category_ids

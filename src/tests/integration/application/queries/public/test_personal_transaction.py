@@ -36,7 +36,9 @@ async def test_personal_transaction_queries_use_cases(
     initiator = tenant_factory(status=TenantStatus.TENANT, state=TenantState.ACTIVE)
     await tenant_read_repo.save(initiator)
 
-    first_category = category_factory(owner_id=initiator.tenant_id.tenant_id, name="food")
+    first_category = category_factory(
+        owner_id=initiator.tenant_id.tenant_id, name="food"
+    )
     second_category = category_factory(
         owner_id=initiator.tenant_id.tenant_id,
         name="travel",
@@ -67,15 +69,19 @@ async def test_personal_transaction_queries_use_cases(
         version=2,
     )
     await transaction_read_repo.save(transaction_v1)
-    await transaction_version_repo.save(transaction_v1, PersonalTransactionEvent.CREATED, None)
+    await transaction_version_repo.save(
+        transaction_v1, PersonalTransactionEvent.CREATED, None
+    )
     await transaction_read_repo.save(transaction_v2)
-    await transaction_version_repo.save(transaction_v2, PersonalTransactionEvent.UPDATED, None)
+    await transaction_version_repo.save(
+        transaction_v2, PersonalTransactionEvent.UPDATED, None
+    )
 
     last_versions, last_count = await PersonalTransactionLastVersionsUseCase(
         uow_factory()
     ).execute(
         PersonalTransactionLastVersionsQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
             transaction_ids=[],
             category_ids=[],
@@ -89,7 +95,7 @@ async def test_personal_transaction_queries_use_cases(
     )
     last_version = await PersonalTransactionLastVersionUseCase(uow_factory()).execute(
         PersonalTransactionLastVersionQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             transaction_id=transaction_id,
         )
     )
@@ -97,12 +103,14 @@ async def test_personal_transaction_queries_use_cases(
         uow_factory()
     ).execute(
         PersonalTransactionVersionsQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
-            transaction_ids=[],
+            transaction_id=transaction_id,
             category_ids=[],
             transaction_types=[],
-            from_money_amount=MoneyAmountDTO(amount=Decimal("100.00"), currency="ruble"),
+            from_money_amount=MoneyAmountDTO(
+                amount=Decimal("100.00"), currency="ruble"
+            ),
             to_money_amount=MoneyAmountDTO(amount=Decimal("300.00"), currency="ruble"),
             from_transaction_time=datetime(2026, 4, 18, 11, 0, 0),
             to_transaction_time=datetime(2026, 4, 18, 14, 0, 0),
@@ -113,7 +121,7 @@ async def test_personal_transaction_queries_use_cases(
     )
     version = await PersonalTransactionVersionUseCase(uow_factory()).execute(
         PersonalTransactionVersionQuery(
-            user_id=initiator.tenant_id.tenant_id,
+            initiator_id=initiator.tenant_id.tenant_id,
             transaction_id=transaction_id,
             version=1,
         )

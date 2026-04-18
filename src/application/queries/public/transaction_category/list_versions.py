@@ -10,6 +10,7 @@ from application.errors import AppInvalidDataError
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID
 from domain.transaction_category import (
+    TransactionCategoryID,
     TransactionCategoryName,
     TransactionCategoryPolicyService,
 )
@@ -18,8 +19,9 @@ from domain.value_objects import State, Version
 
 @dataclass
 class TransactionCategoryVersionsQuery:
-    user_id: UUID
+    initiator_id: UUID
     paginator: LimitOffsetPaginator
+    category_id: UUID
     names: list[str] | None
     states: list[str] | None
     from_version: int | None
@@ -32,14 +34,14 @@ class TransactionCategoryVersionsUseCase(BaseUseCase):
     ) -> tuple[list[TransactionCategoryVersionSimpleDTO], int]:
         action = "получение версий категории транзакции"
         async with self._uow as uow:
-            initiator_id = TenantID(query.user_id)
+            initiator_id = TenantID(query.initiator_id)
             filtering_data = self._cast_data_from_query(query)
             initiator = await uow.tenant_repositories.read.by_id(initiator_id)
             if initiator is None:
                 raise AppInvalidDataError(
                     msg="инициатор не существует",
                     action=action,
-                    data={"tenant": {"tenant_id": query.user_id}},
+                    data={"tenant": {"tenant_id": query.initiator_id}},
                 )
             initiator.raise_access_read()
             categories, count = await uow.category_repositories.version.filters(
@@ -60,7 +62,11 @@ class TransactionCategoryVersionsUseCase(BaseUseCase):
     def _cast_data_from_query(
         self, query: TransactionCategoryVersionsQuery
     ) -> dict[str, Any]:
-        data = {"paginator": query.paginator, "owner_id": TenantID(query.user_id)}
+        data = {
+            "paginator": query.paginator,
+            "owner_id": TenantID(query.initiator_id),
+            "category_id": TransactionCategoryID(query.category_id),
+        }
         if query.names is not None:
             data["names"] = [TransactionCategoryName(name) for name in query.names]
         if query.states is not None:

@@ -88,11 +88,15 @@ class TransactionCategoryReadPostgresRepository(
         self,
         owner_id: TenantID,
         paginator: LimitOffsetPaginator,
-        names: list[TransactionCategoryName] | None,
-        states: list[State] | None,
+        category_ids: list[TransactionCategoryID] | None = None,
+        names: list[TransactionCategoryName] | None = None,
+        states: list[State] | None = None,
     ) -> tuple[list[TransactionCategory], int]:
         conditions = [SQL("WHERE owner_id = %s")]
         params: list[Any] = [owner_id.tenant_id]
+        if category_ids:
+            conditions.append(SQL("category_id = ANY(%s)"))
+            params.append([category_id.category_id for category_id in category_ids])
         if names:
             conditions.append(SQL("name = ANY(%s)"))
             params.append([name.name for name in names])

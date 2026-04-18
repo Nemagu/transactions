@@ -11,7 +11,7 @@ from domain.value_objects import Version
 
 @dataclass
 class TenantVersionsQuery:
-    user_id: UUID
+    initiator_id: UUID
     tenant_id: UUID
     paginator: LimitOffsetPaginator
     statuses: list[str] | None
@@ -26,16 +26,16 @@ class TenantVersionsUseCase(BaseUseCase):
     ) -> tuple[list[TenantVersionSimpleDTO], int]:
         action = "получение нескольких версий арендатора"
         async with self._uow as uow:
-            initiator_id = TenantID(query.user_id)
+            initiator_id = TenantID(query.initiator_id)
             filtering_data = self._cast_data_from_query(query)
             initiator = await uow.tenant_repositories.read.by_id(initiator_id)
             if initiator is None:
                 raise AppInvalidDataError(
                     msg="инициатор не существует",
                     action=action,
-                    data={"tenant": {"tenant_id": query.user_id}},
+                    data={"tenant": {"tenant_id": query.initiator_id}},
                 )
-            if query.user_id == query.tenant_id:
+            if query.initiator_id == query.tenant_id:
                 initiator.raise_access_read()
             else:
                 initiator.raise_staff()

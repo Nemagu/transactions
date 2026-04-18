@@ -1,16 +1,20 @@
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Self
+from typing import TYPE_CHECKING, Self
 from uuid import UUID
 
 from application.dto.transaction_category import (
     TransactionCategorySimpleDTO,
 )
-from application.ports.repositories.personal_transaction import PersonalTransactionEvent
 from domain.personal_transaction import PersonalTransaction
 from domain.tenant import TenantID
 from domain.transaction_category import TransactionCategory
+
+if TYPE_CHECKING:
+    from application.ports.repositories.personal_transaction import (
+        PersonalTransactionEvent,
+    )
 
 
 @dataclass(slots=True)
@@ -108,7 +112,7 @@ class PersonalTransactionVersionSimpleDTO:
     def from_domain(
         cls,
         transaction: PersonalTransaction,
-        event: PersonalTransactionEvent,
+        event: "PersonalTransactionEvent",
         editor_id: TenantID | None,
         created_at: datetime,
     ) -> Self:
@@ -153,7 +157,7 @@ class PersonalTransactionVersionDetailDTO:
         cls,
         transaction: PersonalTransaction,
         categories: list[TransactionCategory],
-        event: PersonalTransactionEvent,
+        event: "PersonalTransactionEvent",
         editor_id: TenantID | None,
         created_at: datetime,
     ) -> Self:
