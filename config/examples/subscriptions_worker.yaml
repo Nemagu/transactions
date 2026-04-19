@@ -1,0 +1,16 @@
+subscription:
+  healthcheck_file: /tmp/subscription_worker_healthbeat
+  loop_sleep_duration: 10
+
+db:
+  host: localhost
+  port: 5432
+  user: transactions_user
+  password_file: /run/secrets/transactions_db_password
+  database: transactions
+  pool:
+    min_size: 10
+    max_size: 20
+    max_inactive_connection_lifetime: 300
+    max_connection_lifetime: 3600
+    timeout: 20
