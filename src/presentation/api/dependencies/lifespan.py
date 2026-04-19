@@ -3,12 +3,12 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
-from infrastructure.config import APISettings
+from infrastructure.config import APIWorkerSettings
 from infrastructure.db.postgres import PostgresConnectionManager
 
 
 class APILifespan:
-    def __init__(self, settings: APISettings) -> None:
+    def __init__(self, settings: APIWorkerSettings) -> None:
         self._settings = settings
 
     @asynccontextmanager

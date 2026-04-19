@@ -3,7 +3,7 @@ from logging import getLogger
 import uvicorn
 from fastapi import FastAPI
 
-from infrastructure.config import APISettings
+from infrastructure.config import APIWorkerSettings
 from presentation.api.dependencies import APILifespan
 from presentation.api.error_handler import setup_error_handler
 from presentation.api.middlewares import (
@@ -17,7 +17,7 @@ logger = getLogger(__name__)
 
 
 class APIWorker:
-    def __init__(self, settings: APISettings) -> None:
+    def __init__(self, settings: APIWorkerSettings) -> None:
         self.settings = settings
         logger.info("init api worker lifespan")
         lifespan = APILifespan(self.settings)
