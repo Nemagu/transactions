@@ -11,7 +11,7 @@ from httpx import ASGITransport, AsyncClient
 from psycopg import AsyncConnection
 from psycopg.rows import DictRow
 
-from infrastructure.config import APISettings
+from infrastructure.config import APIWorkerSettings
 from presentation.api.server import APIWorker
 
 
@@ -25,13 +25,13 @@ class _TestConnectionManager:
 
 
 @pytest.fixture
-def api_settings(postgres_settings) -> APISettings:
-    return APISettings()
+def api_settings(postgres_settings) -> APIWorkerSettings:
+    return APIWorkerSettings()
 
 
 @pytest.fixture
 def api_app(
-    api_settings: APISettings,
+    api_settings: APIWorkerSettings,
     db_connection: AsyncConnection[DictRow],
 ) -> FastAPI:
     worker = APIWorker(api_settings)

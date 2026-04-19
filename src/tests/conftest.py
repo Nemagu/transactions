@@ -13,7 +13,7 @@ from uuid import uuid7
 import psycopg
 import pytest
 
-from infrastructure.config import APISettings, PostgresSettings
+from infrastructure.config import APIWorkerSettings, PostgresSettings
 from infrastructure.db.postgres.apply_migrations import apply_migrations
 
 TEST_DB_DIR = Path("/tmp/transactions/test-db")
@@ -25,11 +25,11 @@ POSTGRES_USER = "transactions_test"
 POSTGRES_DATABASE = "transactions_test"
 POSTGRES_PORT = None
 POSTGRES_PASSWORD = secrets.token_urlsafe(24)
+NATS_PORT = None
 
 DOCKER_COMPOSE_TEMPLATE = """services:
   postgres:
     image: postgres:18-alpine
-    container_name: transactions-test-postgres
     environment:
       POSTGRES_USER: {postgres_user}
       POSTGRES_DB: {postgres_db}
@@ -42,6 +42,11 @@ DOCKER_COMPOSE_TEMPLATE = """services:
       timeout: 3s
       retries: 30
       start_period: 2s
+  nats:
+    image: nats:2.12-alpine
+    command: [\"-js\", \"-m\", \"8222\", \"-sd\", \"/data\"]
+    ports:
+      - \"{nats_port}:4222\"
 """
 
 POSTGRES_CONFIG_TEMPLATE = """db:
@@ -55,6 +60,21 @@ POSTGRES_CONFIG_TEMPLATE = """db:
     max_inactive_connection_lifetime: 60
     max_connection_lifetime: 300
     timeout: 10
+nats:
+  host: localhost
+  port: {nats_port}
+  connect_name: transactions-tests
+  connect_timeout: 2
+  reconnect_time_wait: 1
+  loop_sleep_duration: 1
+user:
+  stream_name: users
+  main_subject_name: user
+  creation_subject_name: created
+  changed_state_subject_name: changed_state
+subscription:
+  healthcheck_file: /tmp/subscription_worker_healthbeat
+  loop_sleep_duration: 1
 """
 
 
@@ -70,7 +90,7 @@ def _choose_free_port() -> int:
             except OSError:
                 continue
             return port
-    raise RuntimeError("Не удалось подобрать свободный порт для postgres")
+    raise RuntimeError("Не удалось подобрать свободный порт")
 
 
 def _run_compose(*args: str) -> None:
@@ -87,7 +107,7 @@ def _run_compose(*args: str) -> None:
         )
 
 
-def _write_runtime_files(postgres_port: int) -> None:
+def _write_runtime_files(postgres_port: int, nats_port: int) -> None:
     if POSTGRES_PASSWORD_FILE is None:
         raise RuntimeError("Файл пароля не подготовлен")
     if DOCKER_COMPOSE_FILE is None:
@@ -103,6 +123,7 @@ def _write_runtime_files(postgres_port: int) -> None:
         postgres_db=POSTGRES_DATABASE,
         postgres_password=POSTGRES_PASSWORD,
         postgres_port=postgres_port,
+        nats_port=nats_port,
     )
     DOCKER_COMPOSE_FILE.write_text(compose_content, encoding="utf-8")
 
@@ -110,6 +131,7 @@ def _write_runtime_files(postgres_port: int) -> None:
         postgres_user=POSTGRES_USER,
         postgres_db=POSTGRES_DATABASE,
         postgres_port=postgres_port,
+        nats_port=nats_port,
         password_file=str(POSTGRES_PASSWORD_FILE),
     )
     POSTGRES_CONFIG_FILE.write_text(config_content, encoding="utf-8")
@@ -118,7 +140,7 @@ def _write_runtime_files(postgres_port: int) -> None:
 def _load_settings() -> PostgresSettings:
     if POSTGRES_CONFIG_FILE is None:
         raise RuntimeError("Файл конфига не подготовлен")
-    settings = APISettings()
+    settings = APIWorkerSettings()
     return settings.db
 
 
@@ -137,13 +159,33 @@ def _wait_postgres_ready(settings: PostgresSettings) -> None:
     raise TimeoutError("PostgreSQL не стал доступен за отведенное время")
 
 
+def _wait_nats_ready(nats_port: int) -> None:
+    timeout_sec = 60
+    start = time.monotonic()
+    while time.monotonic() - start < timeout_sec:
+        try:
+            with socket.create_connection(("127.0.0.1", nats_port), timeout=1) as sock:
+                sock.settimeout(1)
+                data = sock.recv(1024)
+                if b"INFO" in data:
+                    return
+        except Exception:
+            time.sleep(1)
+    raise TimeoutError("NATS не стал доступен за отведенное время")
+
+
 def _apply_migrations(settings: PostgresSettings) -> None:
     apply_migrations(settings)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def postgres_service() -> Generator[None, None, None]:
-    global DOCKER_COMPOSE_FILE, POSTGRES_CONFIG_FILE, POSTGRES_PASSWORD_FILE, POSTGRES_PORT
+    global \
+        DOCKER_COMPOSE_FILE, \
+        POSTGRES_CONFIG_FILE, \
+        POSTGRES_PASSWORD_FILE, \
+        POSTGRES_PORT, \
+        NATS_PORT
 
     previous_config_file = os.environ.get("CONFIG_FILE")
     runtime_file_id = uuid7()
@@ -151,20 +193,28 @@ def postgres_service() -> Generator[None, None, None]:
     POSTGRES_CONFIG_FILE = TEST_DB_DIR / f"postgres-config-{runtime_file_id}.yaml"
     POSTGRES_PASSWORD_FILE = TEST_DB_DIR / f"db-password-{runtime_file_id}.txt"
     POSTGRES_PORT = _choose_free_port()
-    _write_runtime_files(POSTGRES_PORT)
+    NATS_PORT = _choose_free_port()
+    _write_runtime_files(POSTGRES_PORT, NATS_PORT)
     os.environ["CONFIG_FILE"] = str(POSTGRES_CONFIG_FILE)
     settings = _load_settings()
 
     _run_compose("up", "-d")
     try:
         _wait_postgres_ready(settings)
+        if NATS_PORT is None:
+            raise RuntimeError("Порт NATS не подготовлен")
+        _wait_nats_ready(NATS_PORT)
         _apply_migrations(settings)
         yield
     finally:
         try:
             _run_compose("down", "-v", "--remove-orphans")
         finally:
-            for path in (DOCKER_COMPOSE_FILE, POSTGRES_CONFIG_FILE, POSTGRES_PASSWORD_FILE):
+            for path in (
+                DOCKER_COMPOSE_FILE,
+                POSTGRES_CONFIG_FILE,
+                POSTGRES_PASSWORD_FILE,
+            ):
                 if path is not None:
                     path.unlink(missing_ok=True)
             if TEST_DB_DIR.exists() and len(list(TEST_DB_DIR.iterdir())) == 0:
