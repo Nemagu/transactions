@@ -1,16 +1,14 @@
-from datetime import datetime
 from typing import Any
 from uuid import UUID
 
 from psycopg.rows import DictRow
 from psycopg.sql import SQL, Composed, Identifier
 
-from application.dto import (
-    LimitOffsetPaginator,
-)
+from application.dto.paginators import LimitOffsetPaginator
 from application.errors import AppInternalError
 from application.ports.repositories import (
     PersonalTransactionEvent,
+    PersonalTransactionVersionDTO,
     PersonalTransactionVersionRepository,
 )
 from domain.personal_transaction import (
@@ -21,7 +19,7 @@ from domain.personal_transaction import (
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from domain.tenant import Tenant, TenantID
+from domain.tenant import TenantID
 from domain.transaction_category import TransactionCategoryID
 from domain.value_objects import State, Version
 from infrastructure.db.postgres.base import BasePostgresRepository, handle_domain_errors
@@ -32,10 +30,7 @@ class PersonalTransactionVersionPostgresRepository(
 ):
     async def by_id_version(
         self, transaction_id: PersonalTransactionID, version: Version
-    ) -> (
-        tuple[PersonalTransaction, PersonalTransactionEvent, TenantID | None, datetime]
-        | None
-    ):
+    ) -> PersonalTransactionVersionDTO | None:
         query = SQL(
             """
             SELECT
@@ -83,7 +78,7 @@ class PersonalTransactionVersionPostgresRepository(
         data = await self._fetchone(
             query, (transaction_id.transaction_id, version.version)
         )
-        return self._data_to_domain(data) if data is not None else None
+        return self._data_to_dto(data) if data is not None else None
 
     async def filters(
         self,
@@ -99,14 +94,7 @@ class PersonalTransactionVersionPostgresRepository(
         states: list[State] | None = None,
         from_version: Version | None = None,
         to_version: Version | None = None,
-    ) -> tuple[
-        list[
-            tuple[
-                PersonalTransaction, PersonalTransactionEvent, TenantID | None, datetime
-            ]
-        ],
-        int,
-    ]:
+    ) -> tuple[list[PersonalTransactionVersionDTO], int]:
         conditions, params = self._init_conditions_with_params(
             owner_id,
             transaction_id,
@@ -187,21 +175,21 @@ class PersonalTransactionVersionPostgresRepository(
         )
         params.extend([paginator.limit, paginator.offset])
         data = await self._fetchall(query, tuple(params))
-        return [self._data_to_domain(row) for row in data], count
+        return [self._data_to_dto(row) for row in data], count
 
     async def save(
         self,
         transaction: PersonalTransaction,
         event: PersonalTransactionEvent,
-        editor: Tenant | None = None,
+        editor_id: TenantID | None = None,
     ) -> None:
-        await self._create(transaction, event, editor)
+        await self._create(transaction, event, editor_id)
 
     async def _create(
         self,
         transaction: PersonalTransaction,
         event: PersonalTransactionEvent,
-        editor: Tenant | None,
+        editor_id: TenantID | None,
     ) -> None:
         query = SQL(
             """
@@ -237,7 +225,7 @@ class PersonalTransactionVersionPostgresRepository(
                 transaction.state.value,
                 transaction.version.version,
                 event.value,
-                editor.tenant_id.tenant_id if editor is not None else None,
+                editor_id.tenant_id if editor_id is not None else None,
             ),
         )
         if data is None:
@@ -273,28 +261,28 @@ class PersonalTransactionVersionPostgresRepository(
         )
 
     @handle_domain_errors
-    def _data_to_domain(
-        self, data: DictRow
-    ) -> tuple[
-        PersonalTransaction, PersonalTransactionEvent, TenantID | None, datetime
-    ]:
-        return (
-            PersonalTransactionFactory.restore(
-                data["transaction_id"],
-                data["owner_id"],
-                data["name"],
-                data["description"],
-                set(data["category_ids"]),
-                data["transaction_type"],
-                data["amount"],
-                data["currency"],
-                data["transaction_time"],
-                data["state"],
-                data["version"],
-            ),
-            PersonalTransactionEvent.from_str(data["event"]),
-            TenantID(data["editor_id"]) if data["editor_id"] is not None else None,
-            data["created_at"],
+    def _data_to_dto(self, data: DictRow) -> PersonalTransactionVersionDTO:
+        transaction = PersonalTransactionFactory.restore(
+            data["transaction_id"],
+            data["owner_id"],
+            data["name"],
+            data["description"],
+            set(data["category_ids"]),
+            data["transaction_type"],
+            data["amount"],
+            data["currency"],
+            data["transaction_time"],
+            data["state"],
+            data["version"],
+        )
+        editor_id = (
+            TenantID(data["editor_id"]) if data["editor_id"] is not None else None
+        )
+        return PersonalTransactionVersionDTO(
+            transaction=transaction,
+            event=PersonalTransactionEvent.from_str(data["event"]),
+            editor_id=editor_id,
+            created_at=data["created_at"],
         )
 
     def _init_conditions_with_params(

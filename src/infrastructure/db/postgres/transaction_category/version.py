@@ -1,15 +1,15 @@
-from datetime import datetime
 from typing import Any
 
 from psycopg.rows import DictRow
 from psycopg.sql import SQL, Composed, Identifier
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import (
     TransactionCategoryEvent,
+    TransactionCategoryVersionDTO,
     TransactionCategoryVersionRepository,
 )
-from domain.tenant import Tenant, TenantID
+from domain.tenant import TenantID
 from domain.transaction_category import (
     TransactionCategory,
     TransactionCategoryFactory,
@@ -25,10 +25,7 @@ class TransactionCategoryVersionPostgresRepository(
 ):
     async def by_id_version(
         self, category_id: TransactionCategoryID, version: Version
-    ) -> (
-        tuple[TransactionCategory, TransactionCategoryEvent, TenantID | None, datetime]
-        | None
-    ):
+    ) -> TransactionCategoryVersionDTO | None:
         query = SQL(
             """
             SELECT
@@ -46,7 +43,7 @@ class TransactionCategoryVersionPostgresRepository(
             """
         ).format(Identifier(self._category_tables.version))
         data = await self._fetchone(query, (category_id.category_id, version.version))
-        return self._data_to_domain(data) if data is not None else None
+        return self._data_to_dto(data) if data is not None else None
 
     async def filters(
         self,
@@ -57,14 +54,7 @@ class TransactionCategoryVersionPostgresRepository(
         states: list[State] | None = None,
         from_version: Version | None = None,
         to_version: Version | None = None,
-    ) -> tuple[
-        list[
-            tuple[
-                TransactionCategory, TransactionCategoryEvent, TenantID | None, datetime
-            ]
-        ],
-        int,
-    ]:
+    ) -> tuple[list[TransactionCategoryVersionDTO], int]:
         conditions, params = self._init_conditions_with_params(
             owner_id, category_id, names, states, from_version, to_version
         )
@@ -94,21 +84,21 @@ class TransactionCategoryVersionPostgresRepository(
             paginator,
         )
         data = await self._fetchall(query, tuple(params))
-        return [self._data_to_domain(row) for row in data], count
+        return [self._data_to_dto(row) for row in data], count
 
     async def save(
         self,
         category: TransactionCategory,
         event: TransactionCategoryEvent,
-        editor: Tenant | None = None,
+        editor_id: TenantID | None = None,
     ) -> None:
-        await self._create(category, event, editor)
+        await self._create(category, event, editor_id)
 
     async def _create(
         self,
         category: TransactionCategory,
         event: TransactionCategoryEvent,
-        editor: Tenant | None,
+        editor_id: TenantID | None,
     ) -> None:
         query = SQL(
             """
@@ -135,16 +125,12 @@ class TransactionCategoryVersionPostgresRepository(
                 category.state.value,
                 category.version.version,
                 event.value,
-                editor.tenant_id.tenant_id if editor is not None else None,
+                editor_id.tenant_id if editor_id is not None else None,
             ),
         )
 
     @handle_domain_errors
-    def _data_to_domain(
-        self, data: DictRow
-    ) -> tuple[
-        TransactionCategory, TransactionCategoryEvent, TenantID | None, datetime
-    ]:
+    def _data_to_dto(self, data: DictRow) -> TransactionCategoryVersionDTO:
         category = TransactionCategoryFactory.restore(
             data["category_id"],
             data["owner_id"],
@@ -154,11 +140,15 @@ class TransactionCategoryVersionPostgresRepository(
             data["version"],
         )
         event = TransactionCategoryEvent.from_str(data["event"])
-        tenant_id = (
+        editor_id = (
             TenantID(data["editor_id"]) if data["editor_id"] is not None else None
         )
-        created_at = data["created_at"]
-        return category, event, tenant_id, created_at
+        return TransactionCategoryVersionDTO(
+            category=category,
+            event=event,
+            editor_id=editor_id,
+            created_at=data["created_at"],
+        )
 
     def _init_conditions_with_params(
         self,

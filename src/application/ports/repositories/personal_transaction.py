@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Self
@@ -12,7 +13,7 @@ from domain.personal_transaction import (
     PersonalTransactionTime,
     PersonalTransactionType,
 )
-from domain.tenant import Tenant, TenantID
+from domain.tenant import TenantID
 from domain.transaction_category import TransactionCategoryID
 from domain.value_objects import State, Version
 
@@ -33,6 +34,14 @@ class PersonalTransactionEvent(StrEnum):
             action="получение события персональной транзакции",
             data={"event": value},
         )
+
+
+@dataclass
+class PersonalTransactionVersionDTO:
+    transaction: PersonalTransaction
+    event: PersonalTransactionEvent
+    editor_id: TenantID | None
+    created_at: datetime
 
 
 class PersonalTransactionReadRepository(ABC):
@@ -67,10 +76,7 @@ class PersonalTransactionVersionRepository(ABC):
     @abstractmethod
     async def by_id_version(
         self, transaction_id: PersonalTransactionID, version: Version
-    ) -> (
-        tuple[PersonalTransaction, PersonalTransactionEvent, TenantID | None, datetime]
-        | None
-    ): ...
+    ) -> PersonalTransactionVersionDTO | None: ...
 
     @abstractmethod
     async def filters(
@@ -87,19 +93,12 @@ class PersonalTransactionVersionRepository(ABC):
         states: list[State] | None = None,
         from_version: Version | None = None,
         to_version: Version | None = None,
-    ) -> tuple[
-        list[
-            tuple[
-                PersonalTransaction, PersonalTransactionEvent, TenantID | None, datetime
-            ]
-        ],
-        int,
-    ]: ...
+    ) -> tuple[list[PersonalTransactionVersionDTO], int]: ...
 
     @abstractmethod
     async def save(
         self,
         transaction: PersonalTransaction,
         event: PersonalTransactionEvent,
-        editor: Tenant | None,
+        editor_id: TenantID | None,
     ) -> None: ...

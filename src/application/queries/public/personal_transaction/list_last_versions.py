@@ -3,12 +3,11 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from application.dto import (
-    LimitOffsetPaginator,
+from application.dto.paginators import LimitOffsetPaginator
+from application.dto.personal_transaction import (
     MoneyAmountDTO,
     PersonalTransactionSimpleDTO,
 )
-from application.errors import AppInvalidDataError
 from application.queries.base import BaseUseCase
 from domain.personal_transaction import (
     Currency,
@@ -25,8 +24,8 @@ from domain.transaction_category import (
 from domain.value_objects import State
 
 
-@dataclass
-class PersonalTransactionLastVersionsQuery:
+@dataclass(slots=True, frozen=True)
+class ListPersonalTransactionLastVersionsQuery:
     initiator_id: UUID
     paginator: LimitOffsetPaginator
     transaction_ids: list[UUID] | None
@@ -39,21 +38,15 @@ class PersonalTransactionLastVersionsQuery:
     states: list[str] | None
 
 
-class PersonalTransactionLastVersionsUseCase(BaseUseCase):
+class ListPersonalTransactionLastVersionsUseCase(BaseUseCase):
     async def execute(
-        self, query: PersonalTransactionLastVersionsQuery
+        self, query: ListPersonalTransactionLastVersionsQuery
     ) -> tuple[list[PersonalTransactionSimpleDTO], int]:
         action = "получение последних версий транзакций"
+        initiator_id = TenantID(query.initiator_id)
+        filtering_data = self._filtering_data(query)
         async with self._uow as uow:
-            initiator_id = TenantID(query.initiator_id)
-            filtering_data = self._cast_data_from_query(query)
-            initiator = await uow.tenant_repositories.read.by_id(initiator_id)
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": query.initiator_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             initiator.raise_access_read()
             transactions, count = await uow.transaction_repositories.read.filters(
                 **filtering_data
@@ -66,8 +59,8 @@ class PersonalTransactionLastVersionsUseCase(BaseUseCase):
                 for transaction in transactions
             ], count
 
-    def _cast_data_from_query(
-        self, query: PersonalTransactionLastVersionsQuery
+    def _filtering_data(
+        self, query: ListPersonalTransactionLastVersionsQuery
     ) -> dict[str, Any]:
         data = {"paginator": query.paginator, "owner_id": TenantID(query.initiator_id)}
         if query.transaction_ids is not None:

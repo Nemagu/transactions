@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
 from application.dto.paginators import LimitOffsetPaginator
 from application.errors import AppInternalError
-from domain.tenant import Tenant, TenantID
+from domain.tenant import TenantID
 from domain.transaction_category import (
     TransactionCategory,
     TransactionCategoryID,
@@ -33,6 +34,14 @@ class TransactionCategoryEvent(StrEnum):
             action="получение события категории транзакций",
             data={"event": value},
         )
+
+
+@dataclass
+class TransactionCategoryVersionDTO:
+    category: TransactionCategory
+    event: TransactionCategoryEvent
+    editor_id: TenantID | None
+    created_at: datetime
 
 
 class TransactionCategoryReadRepository(DomainTransactionCategoryReadRepository):
@@ -67,10 +76,7 @@ class TransactionCategoryVersionRepository(ABC):
     @abstractmethod
     async def by_id_version(
         self, category_id: TransactionCategoryID, version: Version
-    ) -> (
-        tuple[TransactionCategory, TransactionCategoryEvent, TenantID | None, datetime]
-        | None
-    ): ...
+    ) -> TransactionCategoryVersionDTO | None: ...
 
     @abstractmethod
     async def filters(
@@ -82,19 +88,12 @@ class TransactionCategoryVersionRepository(ABC):
         states: list[State] | None = None,
         from_version: Version | None = None,
         to_version: Version | None = None,
-    ) -> tuple[
-        list[
-            tuple[
-                TransactionCategory, TransactionCategoryEvent, TenantID | None, datetime
-            ]
-        ],
-        int,
-    ]: ...
+    ) -> tuple[list[TransactionCategoryVersionDTO], int]: ...
 
     @abstractmethod
     async def save(
         self,
         category: TransactionCategory,
         event: TransactionCategoryEvent,
-        editor: Tenant | None = None,
+        editor_id: TenantID | None = None,
     ) -> None: ...

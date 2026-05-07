@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from application.commands.base import BaseUseCase
-from application.dto import TransactionCategorySimpleDTO
-from application.errors import AppInvalidDataError
+from application.dto.transaction_category import TransactionCategorySimpleDTO
+from application.errors import AppNotFoundError
 from application.ports.repositories import TransactionCategoryEvent
 from domain.tenant import TenantID
 from domain.transaction_category import (
@@ -12,33 +12,26 @@ from domain.transaction_category import (
 )
 
 
-@dataclass
-class TransactionCategoryDeletionCommand:
+@dataclass(slots=True, frozen=True)
+class DeleteTransactionCategoryCommand:
     user_id: UUID
     category_id: UUID
 
 
-class TransactionCategoryDeletionUseCase(BaseUseCase):
+class DeleteTransactionCategoryUseCase(BaseUseCase):
     async def execute(
-        self, command: TransactionCategoryDeletionCommand
+        self, command: DeleteTransactionCategoryCommand
     ) -> TransactionCategorySimpleDTO:
         action = "удаление категории транзакции"
+        initiator_id = TenantID(command.user_id)
         async with self._uow as uow:
-            initiator = await uow.tenant_repositories.read.by_id(
-                TenantID(command.user_id)
-            )
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": command.user_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             initiator.raise_access_edit()
             category = await uow.category_repositories.read.by_id(
                 TransactionCategoryID(command.category_id)
             )
             if category is None:
-                raise AppInvalidDataError(
+                raise AppNotFoundError(
                     msg="категории не существует",
                     action=action,
                     data={"category": {"category_id": command.category_id}},
@@ -47,6 +40,6 @@ class TransactionCategoryDeletionUseCase(BaseUseCase):
             category.delete()
             await uow.category_repositories.read.save(category)
             await uow.category_repositories.version.save(
-                category, TransactionCategoryEvent.DELETED, initiator
+                category, TransactionCategoryEvent.DELETED, initiator.tenant_id
             )
             return TransactionCategorySimpleDTO.from_domain(category)

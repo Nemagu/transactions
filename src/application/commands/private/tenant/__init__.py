@@ -1,4 +1,4 @@
-from application.commands.private.tenant.create import TenantCreationUseCase
-from application.commands.private.tenant.update import TenantUpdateUseCase
+from application.commands.private.tenant.create import CreateTenantUseCase
+from application.commands.private.tenant.update import UpdateTenantUseCase
 
-__all__ = ["TenantCreationUseCase", "TenantUpdateUseCase"]
+__all__ = ["CreateTenantUseCase", "UpdateTenantUseCase"]

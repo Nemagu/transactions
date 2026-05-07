@@ -2,11 +2,8 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from application.dto import (
-    LimitOffsetPaginator,
-    TransactionCategoryVersionSimpleDTO,
-)
-from application.errors import AppInvalidDataError
+from application.dto.paginators import LimitOffsetPaginator
+from application.dto.transaction_category import TransactionCategoryVersionSimpleDTO
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID
 from domain.transaction_category import (
@@ -17,8 +14,8 @@ from domain.transaction_category import (
 from domain.value_objects import State, Version
 
 
-@dataclass
-class TransactionCategoryVersionsQuery:
+@dataclass(slots=True, frozen=True)
+class ListTransactionCategoryVersionsQuery:
     initiator_id: UUID
     paginator: LimitOffsetPaginator
     category_id: UUID
@@ -28,39 +25,31 @@ class TransactionCategoryVersionsQuery:
     to_version: int | None
 
 
-class TransactionCategoryVersionsUseCase(BaseUseCase):
+class ListTransactionCategoryVersionsUseCase(BaseUseCase):
     async def execute(
-        self, query: TransactionCategoryVersionsQuery
+        self, query: ListTransactionCategoryVersionsQuery
     ) -> tuple[list[TransactionCategoryVersionSimpleDTO], int]:
         action = "получение версий категории транзакции"
+        initiator_id = TenantID(query.initiator_id)
+        filtering_data = self._filtering_data(query)
         async with self._uow as uow:
-            initiator_id = TenantID(query.initiator_id)
-            filtering_data = self._cast_data_from_query(query)
-            initiator = await uow.tenant_repositories.read.by_id(initiator_id)
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": query.initiator_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             initiator.raise_access_read()
-            categories, count = await uow.category_repositories.version.filters(
+            versions, count = await uow.category_repositories.version.filters(
                 **filtering_data
             )
             if count == 0:
                 return list(), count
             service = TransactionCategoryPolicyService()
-            for category, _, _, _ in categories:
-                service.raise_owner(initiator, category)
+            for version in versions:
+                service.raise_owner(initiator, version.category)
             return [
-                TransactionCategoryVersionSimpleDTO.from_domain(
-                    category, event, editor_id, created_at
-                )
-                for category, event, editor_id, created_at in categories
+                TransactionCategoryVersionSimpleDTO.from_dto(version)
+                for version in versions
             ], count
 
-    def _cast_data_from_query(
-        self, query: TransactionCategoryVersionsQuery
+    def _filtering_data(
+        self, query: ListTransactionCategoryVersionsQuery
     ) -> dict[str, Any]:
         data = {
             "paginator": query.paginator,

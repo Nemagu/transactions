@@ -4,8 +4,8 @@ from logging import getLogger
 from typing import Any
 
 from application.commands.private.tenant import (
-    TenantCreationUseCase,
-    TenantUpdateUseCase,
+    CreateTenantUseCase,
+    UpdateTenantUseCase,
 )
 from application.errors import AppError, AppInternalError
 from domain.errors import DomainError
@@ -53,11 +53,11 @@ class SubscriptionWorker(BackgroundBaseWorker):
 
     async def _handle_creation_tenant(self) -> None:
         async with self._db_manager.connection() as conn:
-            await TenantCreationUseCase(PostgresUnitOfWork(conn)).execute()
+            await CreateTenantUseCase(PostgresUnitOfWork(conn)).execute()
 
     async def _handle_update_tenant(self) -> None:
         async with self._db_manager.connection() as conn:
-            await TenantUpdateUseCase(PostgresUnitOfWork(conn)).execute()
+            await UpdateTenantUseCase(PostgresUnitOfWork(conn)).execute()
 
     def _log_processing_error(self, name: str, error: BaseException | None) -> None:
         if error is None:

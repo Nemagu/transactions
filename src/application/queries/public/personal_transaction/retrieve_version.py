@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from application.dto import (
-    PersonalTransactionVersionSimpleDTO,
-)
-from application.errors import AppInvalidDataError
+from application.dto.personal_transaction import PersonalTransactionVersionSimpleDTO
+from application.errors import AppNotFoundError
 from application.queries.base import BaseUseCase
 from domain.personal_transaction import (
     PersonalTransactionID,
@@ -14,41 +12,36 @@ from domain.tenant import TenantID
 from domain.value_objects import Version
 
 
-@dataclass
-class PersonalTransactionVersionQuery:
+@dataclass(slots=True, frozen=True)
+class GetPersonalTransactionVersionQuery:
     initiator_id: UUID
     transaction_id: UUID
     version: int
 
 
-class PersonalTransactionVersionUseCase(BaseUseCase):
+class GetPersonalTransactionVersionUseCase(BaseUseCase):
     async def execute(
-        self, query: PersonalTransactionVersionQuery
+        self, query: GetPersonalTransactionVersionQuery
     ) -> PersonalTransactionVersionSimpleDTO:
         action = "получение версии транзакции"
+        initiator_id = TenantID(query.initiator_id)
+        transaction_id = PersonalTransactionID(query.transaction_id)
+        version = Version(query.version)
         async with self._uow as uow:
-            initiator_id = TenantID(query.initiator_id)
-            transaction_id = PersonalTransactionID(query.transaction_id)
-            version = Version(query.version)
-            initiator = await uow.tenant_repositories.read.by_id(initiator_id)
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": query.initiator_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             initiator.raise_access_read()
-            transaction = await uow.transaction_repositories.version.by_id_version(
-                transaction_id, version
+            transaction_version = (
+                await uow.transaction_repositories.version.by_id_version(
+                    transaction_id, version
+                )
             )
-            if transaction is None:
-                raise AppInvalidDataError(
+            if transaction_version is None:
+                raise AppNotFoundError(
                     msg="транзакции не существует",
                     action=action,
                     data={"transaction": {"transaction_id": query.transaction_id}},
                 )
-            transaction, event, editor_id, created_at = transaction
-            PersonalTransactionPolicyService().raise_owner(initiator, transaction)
-            return PersonalTransactionVersionSimpleDTO.from_domain(
-                transaction, event, editor_id, created_at
+            PersonalTransactionPolicyService().raise_owner(
+                initiator, transaction_version.transaction
             )
+            return PersonalTransactionVersionSimpleDTO.from_dto(transaction_version)

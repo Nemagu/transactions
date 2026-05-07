@@ -3,23 +3,23 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from application.commands.public.transaction_category import (
-    TransactionCategoryCreationUseCase,
-    TransactionCategoryDeletionCommand,
-    TransactionCategoryDeletionUseCase,
-    TransactionCategoryRestorationCommand,
-    TransactionCategoryRestorationUseCase,
-    TransactionCategoryUpdateUseCase,
+    CreateTransactionCategoryUseCase,
+    DeleteTransactionCategoryCommand,
+    DeleteTransactionCategoryUseCase,
+    RestoreTransactionCategoryCommand,
+    RestoreTransactionCategoryUseCase,
+    UpdateTransactionCategoryUseCase,
 )
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.queries.public.transaction_category import (
-    TransactionCategoryLastVersionQuery,
-    TransactionCategoryLastVersionsQuery,
-    TransactionCategoryLastVersionsUseCase,
-    TransactionCategoryLastVersionUseCase,
-    TransactionCategoryVersionQuery,
-    TransactionCategoryVersionsQuery,
-    TransactionCategoryVersionsUseCase,
-    TransactionCategoryVersionUseCase,
+    GetTransactionCategoryLastVersionQuery,
+    GetTransactionCategoryLastVersionUseCase,
+    GetTransactionCategoryVersionQuery,
+    GetTransactionCategoryVersionUseCase,
+    ListTransactionCategoryLastVersionsQuery,
+    ListTransactionCategoryLastVersionsUseCase,
+    ListTransactionCategoryVersionsQuery,
+    ListTransactionCategoryVersionsUseCase,
 )
 from infrastructure.db.postgres import PostgresUnitOfWork
 from presentation.api.dependencies import db_unit_of_work, user_id_extractor
@@ -48,10 +48,10 @@ async def get_categories(
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> LimitOffsetPaginatorResult[TransactionCategorySimpleResponse]:
     paginator = LimitOffsetPaginator(limit, offset)
-    query = TransactionCategoryLastVersionsQuery(
+    query = ListTransactionCategoryLastVersionsQuery(
         user_id, paginator, category_id, name, state
     )
-    uc = TransactionCategoryLastVersionsUseCase(uow)
+    uc = ListTransactionCategoryLastVersionsUseCase(uow)
     result, count = await uc.execute(query)
     result = [TransactionCategorySimpleResponse.from_dto(d) for d in result]
     return LimitOffsetPaginatorResult(count=count, results=result)
@@ -63,8 +63,8 @@ async def get_transaction(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> TransactionCategorySimpleResponse:
-    query = TransactionCategoryLastVersionQuery(user_id, category_id)
-    uc = TransactionCategoryLastVersionUseCase(uow)
+    query = GetTransactionCategoryLastVersionQuery(user_id, category_id)
+    uc = GetTransactionCategoryLastVersionUseCase(uow)
     result = await uc.execute(query)
     return TransactionCategorySimpleResponse.from_dto(result)
 
@@ -82,7 +82,7 @@ async def get_transactions_versions(
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> LimitOffsetPaginatorResult[TransactionCategoryVersionSimpleResponse]:
     paginator = LimitOffsetPaginator(limit, offset)
-    query = TransactionCategoryVersionsQuery(
+    query = ListTransactionCategoryVersionsQuery(
         user_id,
         paginator,
         category_id,
@@ -91,7 +91,7 @@ async def get_transactions_versions(
         from_version,
         to_version,
     )
-    uc = TransactionCategoryVersionsUseCase(uow)
+    uc = ListTransactionCategoryVersionsUseCase(uow)
     result, count = await uc.execute(query)
     result = [TransactionCategoryVersionSimpleResponse.from_dto(d) for d in result]
     return LimitOffsetPaginatorResult(count=count, results=result)
@@ -104,8 +104,8 @@ async def get_transaction_version(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> TransactionCategoryVersionSimpleResponse:
-    query = TransactionCategoryVersionQuery(user_id, category_id, version)
-    uc = TransactionCategoryVersionUseCase(uow)
+    query = GetTransactionCategoryVersionQuery(user_id, category_id, version)
+    uc = GetTransactionCategoryVersionUseCase(uow)
     result = await uc.execute(query)
     return TransactionCategoryVersionSimpleResponse.from_dto(result)
 
@@ -117,7 +117,7 @@ async def create_transaction(
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> UUID:
     command = category.to_command(user_id)
-    uc = TransactionCategoryCreationUseCase(uow)
+    uc = CreateTransactionCategoryUseCase(uow)
     dto = await uc.execute(command)
     return dto.category_id
 
@@ -130,7 +130,7 @@ async def update_transaction(
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> None:
     command = category.to_command(user_id, category_id)
-    uc = TransactionCategoryUpdateUseCase(uow)
+    uc = UpdateTransactionCategoryUseCase(uow)
     await uc.execute(command)
 
 
@@ -140,8 +140,8 @@ async def delete_transaction(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> None:
-    command = TransactionCategoryDeletionCommand(user_id, category_id)
-    uc = TransactionCategoryDeletionUseCase(uow)
+    command = DeleteTransactionCategoryCommand(user_id, category_id)
+    uc = DeleteTransactionCategoryUseCase(uow)
     await uc.execute(command)
 
 
@@ -151,6 +151,6 @@ async def restore_transaction(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> None:
-    command = TransactionCategoryRestorationCommand(user_id, category_id)
-    uc = TransactionCategoryRestorationUseCase(uow)
+    command = RestoreTransactionCategoryCommand(user_id, category_id)
+    uc = RestoreTransactionCategoryUseCase(uow)
     await uc.execute(command)

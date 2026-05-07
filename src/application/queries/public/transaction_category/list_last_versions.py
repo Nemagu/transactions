@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from application.dto import LimitOffsetPaginator, TransactionCategorySimpleDTO
-from application.errors import AppInvalidDataError
+from application.dto.paginators import LimitOffsetPaginator
+from application.dto.transaction_category import TransactionCategorySimpleDTO
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID
 from domain.transaction_category import (
@@ -14,8 +14,8 @@ from domain.transaction_category import (
 from domain.value_objects import State
 
 
-@dataclass
-class TransactionCategoryLastVersionsQuery:
+@dataclass(slots=True, frozen=True)
+class ListTransactionCategoryLastVersionsQuery:
     initiator_id: UUID
     paginator: LimitOffsetPaginator
     category_ids: list[UUID] | None
@@ -23,21 +23,15 @@ class TransactionCategoryLastVersionsQuery:
     states: list[str] | None
 
 
-class TransactionCategoryLastVersionsUseCase(BaseUseCase):
+class ListTransactionCategoryLastVersionsUseCase(BaseUseCase):
     async def execute(
-        self, query: TransactionCategoryLastVersionsQuery
+        self, query: ListTransactionCategoryLastVersionsQuery
     ) -> tuple[list[TransactionCategorySimpleDTO], int]:
         action = "получение последних версий категорий транзакций"
+        initiator_id = TenantID(query.initiator_id)
+        filtering_data = self._filtering_data(query)
         async with self._uow as uow:
-            initiator_id = TenantID(query.initiator_id)
-            filtering_data = self._cast_data_from_query(query)
-            initiator = await uow.tenant_repositories.read.by_id(initiator_id)
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": query.initiator_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             initiator.raise_access_read()
             categories, count = await uow.category_repositories.read.filters(
                 **filtering_data
@@ -50,8 +44,8 @@ class TransactionCategoryLastVersionsUseCase(BaseUseCase):
                 for category in categories
             ], count
 
-    def _cast_data_from_query(
-        self, query: TransactionCategoryLastVersionsQuery
+    def _filtering_data(
+        self, query: ListTransactionCategoryLastVersionsQuery
     ) -> dict[str, Any]:
         data = {"paginator": query.paginator, "owner_id": TenantID(query.initiator_id)}
         if query.category_ids is not None:

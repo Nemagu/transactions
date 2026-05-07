@@ -1,10 +1,10 @@
 from application.commands.base import BaseUseCase
 from application.ports.repositories import TenantEvent
 from domain.errors import EntityIdempotentError
-from domain.tenant import Tenant, TenantState
+from domain.tenant import Tenant, TenantID, TenantState
 
 
-class TenantUpdateUseCase(BaseUseCase):
+class UpdateTenantUseCase(BaseUseCase):
     async def execute(self) -> None:
         async with self._uow as uow:
             tenant_match_user = (
@@ -13,7 +13,7 @@ class TenantUpdateUseCase(BaseUseCase):
             if len(tenant_match_user) == 0:
                 return
             edited_tenants_and_events: list[
-                tuple[Tenant, TenantEvent, Tenant | None]
+                tuple[Tenant, TenantEvent, TenantID | None]
             ] = list()
             for tenant, user in tenant_match_user:
                 try:

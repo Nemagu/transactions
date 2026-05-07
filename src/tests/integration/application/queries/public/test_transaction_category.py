@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import TransactionCategoryEvent
 from application.queries.public.transaction_category import (
-    TransactionCategoryLastVersionQuery,
-    TransactionCategoryLastVersionsQuery,
-    TransactionCategoryLastVersionsUseCase,
-    TransactionCategoryLastVersionUseCase,
-    TransactionCategoryVersionQuery,
-    TransactionCategoryVersionsQuery,
-    TransactionCategoryVersionsUseCase,
-    TransactionCategoryVersionUseCase,
+    GetTransactionCategoryLastVersionQuery,
+    GetTransactionCategoryLastVersionUseCase,
+    GetTransactionCategoryVersionQuery,
+    GetTransactionCategoryVersionUseCase,
+    ListTransactionCategoryLastVersionsQuery,
+    ListTransactionCategoryLastVersionsUseCase,
+    ListTransactionCategoryVersionsQuery,
+    ListTransactionCategoryVersionsUseCase,
 )
 from domain.tenant import TenantState, TenantStatus
 from domain.value_objects import State
@@ -53,10 +53,10 @@ async def test_transaction_category_queries_use_cases(
         category_v2, TransactionCategoryEvent.UPDATED, None
     )
 
-    last_versions, last_count = await TransactionCategoryLastVersionsUseCase(
+    last_versions, last_count = await ListTransactionCategoryLastVersionsUseCase(
         uow_factory()
     ).execute(
-        TransactionCategoryLastVersionsQuery(
+        ListTransactionCategoryLastVersionsQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
             category_ids=None,
@@ -64,16 +64,16 @@ async def test_transaction_category_queries_use_cases(
             states=[State.ACTIVE.value],
         )
     )
-    last_version = await TransactionCategoryLastVersionUseCase(uow_factory()).execute(
-        TransactionCategoryLastVersionQuery(
+    last_version = await GetTransactionCategoryLastVersionUseCase(uow_factory()).execute(
+        GetTransactionCategoryLastVersionQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             category_id=category_v1.category_id.category_id,
         )
     )
-    versions, versions_count = await TransactionCategoryVersionsUseCase(
+    versions, versions_count = await ListTransactionCategoryVersionsUseCase(
         uow_factory()
     ).execute(
-        TransactionCategoryVersionsQuery(
+        ListTransactionCategoryVersionsQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
             category_id=category_v1.category_id.category_id,
@@ -83,8 +83,8 @@ async def test_transaction_category_queries_use_cases(
             to_version=2,
         )
     )
-    version = await TransactionCategoryVersionUseCase(uow_factory()).execute(
-        TransactionCategoryVersionQuery(
+    version = await GetTransactionCategoryVersionUseCase(uow_factory()).execute(
+        GetTransactionCategoryVersionQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             category_id=category_v1.category_id.category_id,
             version=1,

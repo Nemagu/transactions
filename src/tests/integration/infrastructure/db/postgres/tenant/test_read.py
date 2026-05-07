@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from domain.tenant.value_objects import TenantState, TenantStatus
 
 

@@ -3,10 +3,10 @@ from __future__ import annotations
 import pytest
 
 from application.commands.private.tenant import (
-    TenantCreationUseCase,
-    TenantUpdateUseCase,
+    CreateTenantUseCase,
+    UpdateTenantUseCase,
 )
-from application.commands.private.user import UserUpdateCommand, UserUpdateUseCase
+from application.commands.private.user import UpdateUserCommand, UpdateUserUseCase
 from application.ports.repositories import TenantEvent
 from domain.tenant import TenantID, TenantState, TenantStatus
 from domain.user import UserState
@@ -26,7 +26,7 @@ async def test_tenant_creation_use_case_creates_tenants_versions_and_subscriptio
     await user_repo.save(first_user)
     await user_repo.save(second_user)
 
-    await TenantCreationUseCase(uow_factory()).execute()
+    await CreateTenantUseCase(uow_factory()).execute()
 
     first_tenant = await tenant_read_repo.by_id(TenantID(first_user.user_id.user_id))
     second_tenant = await tenant_read_repo.by_id(TenantID(second_user.user_id.user_id))
@@ -47,8 +47,8 @@ async def test_tenant_creation_use_case_creates_tenants_versions_and_subscriptio
     )
     assert first_version is not None
     assert second_version is not None
-    assert first_version[1] == TenantEvent.CREATED
-    assert second_version[1] == TenantEvent.CREATED
+    assert first_version.event == TenantEvent.CREATED
+    assert second_version.event == TenantEvent.CREATED
 
 
 @pytest.mark.asyncio
@@ -62,15 +62,15 @@ async def test_tenant_update_use_case_syncs_state_from_user_versions(
     user = user_factory(state=UserState.ACTIVE, version=1)
     await user_repo.save(user)
 
-    await TenantCreationUseCase(uow_factory()).execute()
-    await UserUpdateUseCase(uow_factory()).execute(
-        UserUpdateCommand(
+    await CreateTenantUseCase(uow_factory()).execute()
+    await UpdateUserUseCase(uow_factory()).execute(
+        UpdateUserCommand(
             user_id=user.user_id.user_id,
             state=UserState.FROZEN.value,
             version=2,
         )
     )
-    await TenantUpdateUseCase(uow_factory()).execute()
+    await UpdateTenantUseCase(uow_factory()).execute()
 
     tenant = await tenant_read_repo.by_id(TenantID(user.user_id.user_id))
     assert tenant is not None
@@ -82,5 +82,5 @@ async def test_tenant_update_use_case_syncs_state_from_user_versions(
         Version(2),
     )
     assert second_version is not None
-    assert second_version[1] == TenantEvent.FROZEN
+    assert second_version.event == TenantEvent.FROZEN
 

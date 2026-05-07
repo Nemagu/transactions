@@ -5,23 +5,24 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from application.commands.public.personal_transaction import (
-    PersonalTransactionCreationUseCase,
-    PersonalTransactionDeletionCommand,
-    PersonalTransactionDeletionUseCase,
-    PersonalTransactionRestorationCommand,
-    PersonalTransactionRestorationUseCase,
-    PersonalTransactionUpdateUseCase,
+    CreatePersonalTransactionUseCase,
+    DeletePersonalTransactionCommand,
+    DeletePersonalTransactionUseCase,
+    RestorePersonalTransactionCommand,
+    RestorePersonalTransactionUseCase,
+    UpdatePersonalTransactionUseCase,
 )
-from application.dto import LimitOffsetPaginator, MoneyAmountDTO
+from application.dto.paginators import LimitOffsetPaginator
+from application.dto.personal_transaction import MoneyAmountDTO
 from application.queries.public.personal_transaction import (
-    PersonalTransactionLastVersionQuery,
-    PersonalTransactionLastVersionsQuery,
-    PersonalTransactionLastVersionsUseCase,
-    PersonalTransactionLastVersionUseCase,
-    PersonalTransactionVersionQuery,
-    PersonalTransactionVersionsQuery,
-    PersonalTransactionVersionsUseCase,
-    PersonalTransactionVersionUseCase,
+    GetPersonalTransactionLastVersionQuery,
+    GetPersonalTransactionLastVersionUseCase,
+    GetPersonalTransactionVersionQuery,
+    GetPersonalTransactionVersionUseCase,
+    ListPersonalTransactionLastVersionsQuery,
+    ListPersonalTransactionLastVersionsUseCase,
+    ListPersonalTransactionVersionsQuery,
+    ListPersonalTransactionVersionsUseCase,
 )
 from infrastructure.db.postgres import PostgresUnitOfWork
 from presentation.api.dependencies import db_unit_of_work, user_id_extractor
@@ -63,7 +64,7 @@ async def get_transactions(
     to_money = None
     if to_money_amount and to_money_currency:
         to_money = MoneyAmountDTO(to_money_amount, to_money_currency)
-    query = PersonalTransactionLastVersionsQuery(
+    query = ListPersonalTransactionLastVersionsQuery(
         user_id,
         paginator,
         transaction_id,
@@ -75,7 +76,7 @@ async def get_transactions(
         to_transaction_time,
         state,
     )
-    uc = PersonalTransactionLastVersionsUseCase(uow)
+    uc = ListPersonalTransactionLastVersionsUseCase(uow)
     result, count = await uc.execute(query)
     result = [PersonalTransactionSimpleResponse.from_dto(d) for d in result]
     return LimitOffsetPaginatorResult(count=count, results=result)
@@ -87,8 +88,8 @@ async def get_transaction(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> PersonalTransactionSimpleResponse:
-    query = PersonalTransactionLastVersionQuery(user_id, transaction_id)
-    uc = PersonalTransactionLastVersionUseCase(uow)
+    query = GetPersonalTransactionLastVersionQuery(user_id, transaction_id)
+    uc = GetPersonalTransactionLastVersionUseCase(uow)
     result = await uc.execute(query)
     return PersonalTransactionSimpleResponse.from_dto(result)
 
@@ -119,7 +120,7 @@ async def get_transactions_versions(
     to_money = None
     if to_money_amount and to_money_currency:
         to_money = MoneyAmountDTO(to_money_amount, to_money_currency)
-    query = PersonalTransactionVersionsQuery(
+    query = ListPersonalTransactionVersionsQuery(
         user_id,
         paginator,
         transaction_id,
@@ -133,7 +134,7 @@ async def get_transactions_versions(
         from_version,
         to_version,
     )
-    uc = PersonalTransactionVersionsUseCase(uow)
+    uc = ListPersonalTransactionVersionsUseCase(uow)
     result, count = await uc.execute(query)
     result = [PersonalTransactionVersionSimpleResponse.from_dto(d) for d in result]
     return LimitOffsetPaginatorResult(count=count, results=result)
@@ -146,8 +147,8 @@ async def get_transaction_version(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> PersonalTransactionVersionSimpleResponse:
-    query = PersonalTransactionVersionQuery(user_id, transaction_id, version)
-    uc = PersonalTransactionVersionUseCase(uow)
+    query = GetPersonalTransactionVersionQuery(user_id, transaction_id, version)
+    uc = GetPersonalTransactionVersionUseCase(uow)
     result = await uc.execute(query)
     return PersonalTransactionVersionSimpleResponse.from_dto(result)
 
@@ -159,7 +160,7 @@ async def create_transaction(
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> UUID:
     command = transaction.to_command(user_id)
-    uc = PersonalTransactionCreationUseCase(uow)
+    uc = CreatePersonalTransactionUseCase(uow)
     dto = await uc.execute(command)
     return dto.transaction_id
 
@@ -172,7 +173,7 @@ async def update_transaction(
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> None:
     command = transaction.to_command(user_id, transaction_id)
-    uc = PersonalTransactionUpdateUseCase(uow)
+    uc = UpdatePersonalTransactionUseCase(uow)
     await uc.execute(command)
 
 
@@ -182,8 +183,8 @@ async def delete_transaction(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> None:
-    command = PersonalTransactionDeletionCommand(user_id, transaction_id)
-    uc = PersonalTransactionDeletionUseCase(uow)
+    command = DeletePersonalTransactionCommand(user_id, transaction_id)
+    uc = DeletePersonalTransactionUseCase(uow)
     await uc.execute(command)
 
 
@@ -193,6 +194,6 @@ async def restore_transaction(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> None:
-    command = PersonalTransactionRestorationCommand(user_id, transaction_id)
-    uc = PersonalTransactionRestorationUseCase(uow)
+    command = RestorePersonalTransactionCommand(user_id, transaction_id)
+    uc = RestorePersonalTransactionUseCase(uow)
     await uc.execute(command)

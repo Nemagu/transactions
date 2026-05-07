@@ -3,13 +3,13 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Self
 from uuid import UUID
 
-from domain.tenant import Tenant, TenantID
+from domain.tenant import Tenant
 
 if TYPE_CHECKING:
-    from application.ports.repositories.tenant import TenantEvent
+    from application.ports.repositories.tenant import TenantEvent, TenantVersionDTO
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class TenantSimpleDTO:
     tenant_id: UUID
     status: str
@@ -26,7 +26,7 @@ class TenantSimpleDTO:
         )
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class TenantVersionSimpleDTO:
     tenant_id: UUID
     status: str
@@ -37,25 +37,19 @@ class TenantVersionSimpleDTO:
     created_at: datetime
 
     @classmethod
-    def from_domain(
-        cls,
-        tenant: Tenant,
-        event: "TenantEvent",
-        editor_id: TenantID | None,
-        created_at: datetime,
-    ) -> Self:
+    def from_dto(cls, dto: "TenantVersionDTO") -> Self:
         return cls(
-            tenant.tenant_id.tenant_id,
-            tenant.status.value,
-            tenant.state.value,
-            tenant.version.version,
-            event.value,
-            editor_id.tenant_id if editor_id is not None else None,
-            created_at,
+            dto.tenant.tenant_id.tenant_id,
+            dto.tenant.status.value,
+            dto.tenant.state.value,
+            dto.tenant.version.version,
+            dto.event.value,
+            dto.editor_id.tenant_id if dto.editor_id is not None else None,
+            dto.created_at,
         )
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class TenantVersionDetailDTO:
     tenant_id: UUID
     status: str

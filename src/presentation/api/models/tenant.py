@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from application.dto import (
+from application.dto.tenant import (
     TenantSimpleDTO,
     TenantVersionDetailDTO,
     TenantVersionSimpleDTO,

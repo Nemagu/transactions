@@ -6,10 +6,10 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from application.commands.public.personal_transaction import (
-    PersonalTransactionCreationCommand,
-    PersonalTransactionUpdateCommand,
+    CreatePersonalTransactionCommand,
+    UpdatePersonalTransactionCommand,
 )
-from application.dto import (
+from application.dto.personal_transaction import (
     MoneyAmountDTO,
     PersonalTransactionDetailDTO,
     PersonalTransactionSimpleDTO,
@@ -51,10 +51,10 @@ class PersonalTransactionCreationRequest(BaseModel):
     name: str = ""
     description: str = ""
 
-    def to_command(self, user_id: UUID) -> PersonalTransactionCreationCommand:
-        return PersonalTransactionCreationCommand(
+    def to_command(self, user_id: UUID) -> CreatePersonalTransactionCommand:
+        return CreatePersonalTransactionCommand(
             user_id=user_id,
-            category_ids=self.category_ids,
+            category_ids=list(self.category_ids),
             transaction_type=self.transaction_type,
             money_amount=self.money_amount.to_command(),
             transaction_time=self.transaction_time,
@@ -75,13 +75,19 @@ class PersonalTransactionUpdateRequest(BaseModel):
 
     def to_command(
         self, user_id: UUID, transaction_id: UUID
-    ) -> PersonalTransactionUpdateCommand:
-        return PersonalTransactionUpdateCommand(
+    ) -> UpdatePersonalTransactionCommand:
+        return UpdatePersonalTransactionCommand(
             user_id=user_id,
             transaction_id=transaction_id,
-            category_ids=self.category_ids,
-            add_category_ids=self.add_category_ids,
-            remove_category_ids=self.remove_category_ids,
+            category_ids=list(self.category_ids)
+            if self.category_ids is not None
+            else None,
+            add_category_ids=list(self.add_category_ids)
+            if self.add_category_ids is not None
+            else None,
+            remove_category_ids=list(self.remove_category_ids)
+            if self.remove_category_ids is not None
+            else None,
             transaction_type=self.transaction_type,
             money_amount=self.money_amount.to_command()
             if self.money_amount is not None

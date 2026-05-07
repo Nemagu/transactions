@@ -5,10 +5,10 @@ from uuid import uuid7
 import pytest
 
 from application.commands.private.user import (
-    UserCreationCommand,
-    UserCreationUseCase,
-    UserUpdateCommand,
-    UserUpdateUseCase,
+    CreateUserCommand,
+    CreateUserUseCase,
+    UpdateUserCommand,
+    UpdateUserUseCase,
 )
 from application.errors import AppNotFoundError
 from domain.user import UserID, UserState
@@ -18,15 +18,15 @@ from domain.user import UserID, UserState
 async def test_user_creation_and_update_use_cases(uow_factory, user_repo) -> None:
     user_id = uuid7()
 
-    create_dto = await UserCreationUseCase(uow_factory()).execute(
-        UserCreationCommand(
+    create_dto = await CreateUserUseCase(uow_factory()).execute(
+        CreateUserCommand(
             user_id=user_id,
             state=UserState.ACTIVE.value,
             version=1,
         )
     )
-    update_dto = await UserUpdateUseCase(uow_factory()).execute(
-        UserUpdateCommand(
+    update_dto = await UpdateUserUseCase(uow_factory()).execute(
+        UpdateUserCommand(
             user_id=user_id,
             state=UserState.FROZEN.value,
             version=2,
@@ -50,8 +50,8 @@ async def test_user_creation_and_update_use_cases(uow_factory, user_repo) -> Non
 @pytest.mark.asyncio
 async def test_user_update_use_case_raises_for_missing_user(uow_factory) -> None:
     with pytest.raises(AppNotFoundError):
-        await UserUpdateUseCase(uow_factory()).execute(
-            UserUpdateCommand(
+        await UpdateUserUseCase(uow_factory()).execute(
+            UpdateUserCommand(
                 user_id=uuid7(),
                 state=UserState.ACTIVE.value,
                 version=1,

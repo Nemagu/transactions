@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import TenantEvent
 from domain.tenant.value_objects import TenantState, TenantStatus
 from domain.value_objects import Version
@@ -20,7 +20,7 @@ async def test_save_and_by_id_version(
     await tenant_read_repo.save(tenant)
     await tenant_read_repo.save(editor)
 
-    await tenant_version_repo.save(tenant, TenantEvent.CREATED, editor)
+    await tenant_version_repo.save(tenant, TenantEvent.CREATED, editor.tenant_id)
 
     stored = await tenant_version_repo.by_id_version(
         tenant_id_factory(tenant.tenant_id.tenant_id),
@@ -28,10 +28,9 @@ async def test_save_and_by_id_version(
     )
 
     assert stored is not None
-    actual_tenant, event, editor_id, _ = stored
-    assert actual_tenant.tenant_id == tenant.tenant_id
-    assert event == TenantEvent.CREATED
-    assert editor_id == editor.tenant_id
+    assert stored.tenant.tenant_id == tenant.tenant_id
+    assert stored.event == TenantEvent.CREATED
+    assert stored.editor_id == editor.tenant_id
 
 
 @pytest.mark.asyncio
@@ -114,8 +113,8 @@ async def test_filters_by_version_and_state(
 
     assert count == len(expected_versions)
     assert len(versions) == len(expected_versions)
-    assert {item[0].version.version for item in versions} == expected_versions
-    assert {item[1] for item in versions} == expected_events
+    assert {item.tenant.version.version for item in versions} == expected_versions
+    assert {item.event for item in versions} == expected_events
 
 
 @pytest.mark.asyncio

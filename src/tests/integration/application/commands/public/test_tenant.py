@@ -3,10 +3,10 @@ from __future__ import annotations
 import pytest
 
 from application.commands.public.tenant import (
-    TenantAppointmentAdminCommand,
-    TenantAppointmentAdminUseCase,
-    TenantAppointmentTenantCommand,
-    TenantAppointmentTenantUseCase,
+    AppointTenantAdminCommand,
+    AppointTenantAdminUseCase,
+    DemoteTenantAdminCommand,
+    DemoteTenantAdminUseCase,
 )
 from application.ports.repositories import TenantEvent
 from domain.tenant import TenantState, TenantStatus
@@ -25,14 +25,14 @@ async def test_tenant_public_commands_change_status_and_create_versions(
     await tenant_read_repo.save(initiator)
     await tenant_read_repo.save(tenant)
 
-    to_admin = await TenantAppointmentAdminUseCase(uow_factory()).execute(
-        TenantAppointmentAdminCommand(
+    to_admin = await AppointTenantAdminUseCase(uow_factory()).execute(
+        AppointTenantAdminCommand(
             initiator_id=initiator.tenant_id.tenant_id,
             tenant_id=tenant.tenant_id.tenant_id,
         )
     )
-    to_tenant = await TenantAppointmentTenantUseCase(uow_factory()).execute(
-        TenantAppointmentTenantCommand(
+    to_tenant = await DemoteTenantAdminUseCase(uow_factory()).execute(
+        DemoteTenantAdminCommand(
             initiator_id=initiator.tenant_id.tenant_id,
             tenant_id=tenant.tenant_id.tenant_id,
         )
@@ -53,8 +53,8 @@ async def test_tenant_public_commands_change_status_and_create_versions(
     )
     assert admin_version is not None
     assert tenant_version is not None
-    assert admin_version[1] == TenantEvent.UPDATED
-    assert tenant_version[1] == TenantEvent.UPDATED
-    assert admin_version[2] == initiator.tenant_id
-    assert tenant_version[2] == initiator.tenant_id
+    assert admin_version.event == TenantEvent.UPDATED
+    assert tenant_version.event == TenantEvent.UPDATED
+    assert admin_version.editor_id == initiator.tenant_id
+    assert tenant_version.editor_id == initiator.tenant_id
 

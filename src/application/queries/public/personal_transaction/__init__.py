@@ -1,27 +1,27 @@
 from application.queries.public.personal_transaction.list_last_versions import (
-    PersonalTransactionLastVersionsQuery,
-    PersonalTransactionLastVersionsUseCase,
+    ListPersonalTransactionLastVersionsQuery,
+    ListPersonalTransactionLastVersionsUseCase,
 )
 from application.queries.public.personal_transaction.list_versions import (
-    PersonalTransactionVersionsQuery,
-    PersonalTransactionVersionsUseCase,
+    ListPersonalTransactionVersionsQuery,
+    ListPersonalTransactionVersionsUseCase,
 )
 from application.queries.public.personal_transaction.retrieve_last_version import (
-    PersonalTransactionLastVersionQuery,
-    PersonalTransactionLastVersionUseCase,
+    GetPersonalTransactionLastVersionQuery,
+    GetPersonalTransactionLastVersionUseCase,
 )
 from application.queries.public.personal_transaction.retrieve_version import (
-    PersonalTransactionVersionQuery,
-    PersonalTransactionVersionUseCase,
+    GetPersonalTransactionVersionQuery,
+    GetPersonalTransactionVersionUseCase,
 )
 
 __all__ = [
-    "PersonalTransactionLastVersionQuery",
-    "PersonalTransactionLastVersionUseCase",
-    "PersonalTransactionLastVersionsQuery",
-    "PersonalTransactionLastVersionsUseCase",
-    "PersonalTransactionVersionQuery",
-    "PersonalTransactionVersionUseCase",
-    "PersonalTransactionVersionsQuery",
-    "PersonalTransactionVersionsUseCase",
+    "GetPersonalTransactionLastVersionQuery",
+    "GetPersonalTransactionLastVersionUseCase",
+    "GetPersonalTransactionVersionQuery",
+    "GetPersonalTransactionVersionUseCase",
+    "ListPersonalTransactionLastVersionsQuery",
+    "ListPersonalTransactionLastVersionsUseCase",
+    "ListPersonalTransactionVersionsQuery",
+    "ListPersonalTransactionVersionsUseCase",
 ]

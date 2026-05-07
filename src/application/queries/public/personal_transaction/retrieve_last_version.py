@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from application.dto import PersonalTransactionSimpleDTO
-from application.errors import AppInvalidDataError
+from application.dto.personal_transaction import PersonalTransactionSimpleDTO
+from application.errors import AppNotFoundError
 from application.queries.base import BaseUseCase
 from domain.personal_transaction import (
     PersonalTransactionID,
@@ -11,31 +11,25 @@ from domain.personal_transaction import (
 from domain.tenant import TenantID
 
 
-@dataclass
-class PersonalTransactionLastVersionQuery:
+@dataclass(slots=True, frozen=True)
+class GetPersonalTransactionLastVersionQuery:
     initiator_id: UUID
     transaction_id: UUID
 
 
-class PersonalTransactionLastVersionUseCase(BaseUseCase):
+class GetPersonalTransactionLastVersionUseCase(BaseUseCase):
     async def execute(
-        self, query: PersonalTransactionLastVersionQuery
+        self, query: GetPersonalTransactionLastVersionQuery
     ) -> PersonalTransactionSimpleDTO:
         action = "получение последней версии транзакции"
+        initiator_id = TenantID(query.initiator_id)
+        transaction_id = PersonalTransactionID(query.transaction_id)
         async with self._uow as uow:
-            initiator_id = TenantID(query.initiator_id)
-            transaction_id = PersonalTransactionID(query.transaction_id)
-            initiator = await uow.tenant_repositories.read.by_id(initiator_id)
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": query.initiator_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             initiator.raise_access_read()
             transaction = await uow.transaction_repositories.read.by_id(transaction_id)
             if transaction is None:
-                raise AppInvalidDataError(
+                raise AppNotFoundError(
                     msg="транзакции не существует",
                     action=action,
                     data={"transaction": {"transaction_id": query.transaction_id}},

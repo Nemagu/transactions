@@ -4,9 +4,7 @@ from uuid import uuid7
 from psycopg.rows import DictRow
 from psycopg.sql import SQL, Composed, Identifier
 
-from application.dto import (
-    LimitOffsetPaginator,
-)
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import PersonalTransactionReadRepository
 from domain.personal_transaction import (
     MoneyAmount,

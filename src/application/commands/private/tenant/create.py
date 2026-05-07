@@ -4,7 +4,7 @@ from domain.tenant import Tenant, TenantCreationService
 from domain.user import User
 
 
-class TenantCreationUseCase(BaseUseCase):
+class CreateTenantUseCase(BaseUseCase):
     async def execute(self) -> None:
         async with self._uow as uow:
             users = await uow.tenant_repositories.subscription.users_have_no_tenants()

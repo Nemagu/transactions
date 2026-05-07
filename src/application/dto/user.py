@@ -5,7 +5,7 @@ from uuid import UUID
 from domain.user import User
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class UserSimpleDTO:
     user_id: UUID
     state: str

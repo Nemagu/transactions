@@ -3,7 +3,10 @@ from datetime import datetime
 from uuid import UUID
 
 from application.commands.base import BaseUseCase
-from application.dto import MoneyAmountDTO, PersonalTransactionSimpleDTO
+from application.dto.personal_transaction import (
+    MoneyAmountDTO,
+    PersonalTransactionSimpleDTO,
+)
 from application.errors import AppInvalidDataError, AppNotFoundError
 from application.ports.repositories import PersonalTransactionEvent
 from application.ports.unit_of_work import UnitOfWork
@@ -22,74 +25,29 @@ from domain.transaction_category import TransactionCategoryID
 from domain.transaction_category.entity import TransactionCategory
 
 
-@dataclass
-class PersonalTransactionUpdateCommand:
+@dataclass(slots=True, frozen=True)
+class UpdatePersonalTransactionCommand:
     user_id: UUID
     transaction_id: UUID
-    category_ids: set[UUID] | None
-    add_category_ids: set[UUID] | None
-    remove_category_ids: set[UUID] | None
+    category_ids: list[UUID] | None
+    add_category_ids: list[UUID] | None
+    remove_category_ids: list[UUID] | None
     transaction_type: str | None
     money_amount: MoneyAmountDTO | None
     transaction_time: datetime | None
     name: str | None
     description: str | None
 
-    def __post_init__(self) -> None:
-        action = "обновление персональной транзакции"
-        if (
-            self.category_ids is None
-            and self.add_category_ids is None
-            and self.remove_category_ids is None
-            and self.transaction_type is None
-            and self.money_amount is None
-            and self.transaction_time is None
-            and self.name is None
-            and self.description is None
-        ):
-            raise AppInvalidDataError(
-                msg="для обновления транзакции не переданы данные",
-                action=action,
-                data={
-                    "category_ids": None,
-                    "add_category_ids": None,
-                    "remove_category_ids": None,
-                    "transaction_type": None,
-                    "money_amount": None,
-                    "transaction_time": None,
-                    "name": None,
-                    "description": None,
-                },
-            )
-        if self.category_ids is not None and (
-            self.add_category_ids is not None or self.remove_category_ids is not None
-        ):
-            raise AppInvalidDataError(
-                msg="не корректные данные для обновления категорий транзакции",
-                action=action,
-                data={
-                    "category_ids": self.category_ids,
-                    "add_category_ids": self.add_category_ids,
-                    "remove_category_ids": self.remove_category_ids,
-                },
-            )
 
-
-class PersonalTransactionUpdateUseCase(BaseUseCase):
+class UpdatePersonalTransactionUseCase(BaseUseCase):
     async def execute(
-        self, command: PersonalTransactionUpdateCommand
+        self, command: UpdatePersonalTransactionCommand
     ) -> PersonalTransactionSimpleDTO:
         action = "обновление персональной транзакции"
+        self._validate_command(command, action)
+        initiator_id = TenantID(command.user_id)
         async with self._uow as uow:
-            initiator = await uow.tenant_repositories.read.by_id(
-                TenantID(command.user_id)
-            )
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": command.user_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             initiator.raise_access_edit()
             transaction = await uow.transaction_repositories.read.by_id(
                 PersonalTransactionID(command.transaction_id)
@@ -123,19 +81,54 @@ class PersonalTransactionUpdateUseCase(BaseUseCase):
                     PersonalTransactionDescription(command.description)
                 )
             if command.category_ids is not None:
-                categories = await self._categories(uow, command.category_ids)
+                categories = await self._categories(uow, set(command.category_ids))
                 transaction.new_categories(categories)
             if command.add_category_ids is not None:
-                categories = await self._categories(uow, command.add_category_ids)
+                categories = await self._categories(
+                    uow, set(command.add_category_ids)
+                )
                 transaction.add_categories(categories)
             if command.remove_category_ids is not None:
-                categories = await self._categories(uow, command.remove_category_ids)
+                categories = await self._categories(
+                    uow, set(command.remove_category_ids)
+                )
                 transaction.remove_categories(categories)
             await uow.transaction_repositories.read.save(transaction)
             await uow.transaction_repositories.version.save(
-                transaction, PersonalTransactionEvent.UPDATED, initiator
+                transaction, PersonalTransactionEvent.UPDATED, initiator.tenant_id
             )
             return PersonalTransactionSimpleDTO.from_domain(transaction)
+
+    @staticmethod
+    def _validate_command(
+        command: UpdatePersonalTransactionCommand, action: str
+    ) -> None:
+        if (
+            command.category_ids is None
+            and command.add_category_ids is None
+            and command.remove_category_ids is None
+            and command.transaction_type is None
+            and command.money_amount is None
+            and command.transaction_time is None
+            and command.name is None
+            and command.description is None
+        ):
+            raise AppInvalidDataError(
+                msg="для обновления транзакции не переданы данные",
+                action=action,
+                data={"transaction": {"transaction_id": command.transaction_id}},
+            )
+        if command.category_ids is not None and (
+            command.add_category_ids is not None
+            or command.remove_category_ids is not None
+        ):
+            raise AppInvalidDataError(
+                msg="не корректные данные для обновления категорий транзакции",
+                action=action,
+                data={
+                    "transaction": {"transaction_id": command.transaction_id},
+                },
+            )
 
     async def _categories(
         self, uow: UnitOfWork, category_ids: set[UUID]

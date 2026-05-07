@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import TransactionCategoryEvent
 from domain.transaction_category.value_objects import TransactionCategoryName
 from domain.value_objects import State, Version
@@ -23,15 +23,16 @@ async def test_save_and_by_id_version(
 
     category = category_factory(owner_id=owner_tenant.tenant_id.tenant_id)
     await category_read_repo.save(category)
-    await category_version_repo.save(category, TransactionCategoryEvent.CREATED, editor)
+    await category_version_repo.save(
+        category, TransactionCategoryEvent.CREATED, editor.tenant_id
+    )
 
     stored = await category_version_repo.by_id_version(category.category_id, Version(1))
 
     assert stored is not None
-    actual_category, event, editor_id, _ = stored
-    assert actual_category.category_id == category.category_id
-    assert event == TransactionCategoryEvent.CREATED
-    assert editor_id == editor.tenant_id
+    assert stored.category.category_id == category.category_id
+    assert stored.event == TransactionCategoryEvent.CREATED
+    assert stored.editor_id == editor.tenant_id
 
 
 @pytest.mark.asyncio
@@ -123,5 +124,5 @@ async def test_filters_by_version_name_and_state(
 
     assert count == len(expected_versions)
     assert len(data) == len(expected_versions)
-    assert {item[0].version.version for item in data} == expected_versions
-    assert {item[1] for item in data} == expected_events
+    assert {item.category.version.version for item in data} == expected_versions
+    assert {item.event for item in data} == expected_events

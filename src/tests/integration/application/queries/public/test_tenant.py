@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import TenantEvent
 from application.queries.public.tenant import (
-    TenantLastVersionQuery,
-    TenantLastVersionsQuery,
-    TenantLastVersionsUseCase,
-    TenantLastVersionUseCase,
-    TenantVersionQuery,
-    TenantVersionsQuery,
-    TenantVersionsUseCase,
-    TenantVersionUseCase,
+    GetTenantLastVersionQuery,
+    GetTenantLastVersionUseCase,
+    GetTenantVersionQuery,
+    GetTenantVersionUseCase,
+    ListTenantLastVersionsQuery,
+    ListTenantLastVersionsUseCase,
+    ListTenantVersionsQuery,
+    ListTenantVersionsUseCase,
 )
 from domain.tenant import TenantState, TenantStatus
 
@@ -39,12 +39,12 @@ async def test_tenant_queries_use_cases(
     )
     await tenant_read_repo.save(initiator)
     await tenant_read_repo.save(target_v1)
-    await tenant_version_repo.save(target_v1, TenantEvent.CREATED, initiator)
+    await tenant_version_repo.save(target_v1, TenantEvent.CREATED, initiator.tenant_id)
     await tenant_read_repo.save(target_v2)
-    await tenant_version_repo.save(target_v2, TenantEvent.UPDATED, initiator)
+    await tenant_version_repo.save(target_v2, TenantEvent.UPDATED, initiator.tenant_id)
 
-    last_versions, last_count = await TenantLastVersionsUseCase(uow_factory()).execute(
-        TenantLastVersionsQuery(
+    last_versions, last_count = await ListTenantLastVersionsUseCase(uow_factory()).execute(
+        ListTenantLastVersionsQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
             tenant_ids=[target_v2.tenant_id.tenant_id],
@@ -52,14 +52,14 @@ async def test_tenant_queries_use_cases(
             states=[TenantState.ACTIVE.value],
         )
     )
-    last_version = await TenantLastVersionUseCase(uow_factory()).execute(
-        TenantLastVersionQuery(
+    last_version = await GetTenantLastVersionUseCase(uow_factory()).execute(
+        GetTenantLastVersionQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             tenant_id=target_v2.tenant_id.tenant_id,
         )
     )
-    versions, version_count = await TenantVersionsUseCase(uow_factory()).execute(
-        TenantVersionsQuery(
+    versions, version_count = await ListTenantVersionsUseCase(uow_factory()).execute(
+        ListTenantVersionsQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             tenant_id=target_v2.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
@@ -69,8 +69,8 @@ async def test_tenant_queries_use_cases(
             to_version=2,
         )
     )
-    version = await TenantVersionUseCase(uow_factory()).execute(
-        TenantVersionQuery(
+    version = await GetTenantVersionUseCase(uow_factory()).execute(
+        GetTenantVersionQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             tenant_id=target_v2.tenant_id.tenant_id,
             version=1,

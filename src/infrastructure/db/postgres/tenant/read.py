@@ -1,7 +1,7 @@
 from psycopg.rows import DictRow
 from psycopg.sql import SQL, Identifier
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import TenantReadRepository
 from domain.tenant import Tenant, TenantFactory, TenantID, TenantState, TenantStatus
 from infrastructure.db.postgres.base import BasePostgresRepository, handle_domain_errors

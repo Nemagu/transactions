@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from application.dto import (
-    TransactionCategoryVersionSimpleDTO,
-)
-from application.errors import AppInvalidDataError
+from application.dto.transaction_category import TransactionCategoryVersionSimpleDTO
+from application.errors import AppNotFoundError
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID
 from domain.transaction_category import (
@@ -14,41 +12,34 @@ from domain.transaction_category import (
 from domain.value_objects import Version
 
 
-@dataclass
-class TransactionCategoryVersionQuery:
+@dataclass(slots=True, frozen=True)
+class GetTransactionCategoryVersionQuery:
     initiator_id: UUID
     category_id: UUID
     version: int
 
 
-class TransactionCategoryVersionUseCase(BaseUseCase):
+class GetTransactionCategoryVersionUseCase(BaseUseCase):
     async def execute(
-        self, query: TransactionCategoryVersionQuery
+        self, query: GetTransactionCategoryVersionQuery
     ) -> TransactionCategoryVersionSimpleDTO:
         action = "получение версии категории транзакций"
+        initiator_id = TenantID(query.initiator_id)
+        category_id = TransactionCategoryID(query.category_id)
+        version = Version(query.version)
         async with self._uow as uow:
-            initiator_id = TenantID(query.initiator_id)
-            category_id = TransactionCategoryID(query.category_id)
-            version = Version(query.version)
-            initiator = await uow.tenant_repositories.read.by_id(initiator_id)
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": query.initiator_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             initiator.raise_access_read()
-            category = await uow.category_repositories.version.by_id_version(
+            category_version = await uow.category_repositories.version.by_id_version(
                 category_id, version
             )
-            if category is None:
-                raise AppInvalidDataError(
+            if category_version is None:
+                raise AppNotFoundError(
                     msg="категории транзакций не существует",
                     action=action,
                     data={"category": {"category_id": query.category_id}},
                 )
-            category, event, editor_id, created_at = category
-            TransactionCategoryPolicyService().raise_owner(initiator, category)
-            return TransactionCategoryVersionSimpleDTO.from_domain(
-                category, event, editor_id, created_at
+            TransactionCategoryPolicyService().raise_owner(
+                initiator, category_version.category
             )
+            return TransactionCategoryVersionSimpleDTO.from_dto(category_version)

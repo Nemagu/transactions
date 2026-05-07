@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from domain.personal_transaction import Currency, MoneyAmount
 from domain.personal_transaction.value_objects import PersonalTransactionType
 from domain.value_objects import State

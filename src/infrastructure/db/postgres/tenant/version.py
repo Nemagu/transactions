@@ -1,11 +1,14 @@
-from datetime import datetime
 from typing import Any
 
 from psycopg.rows import DictRow
 from psycopg.sql import SQL, Composed, Identifier
 
-from application.dto import LimitOffsetPaginator
-from application.ports.repositories import TenantEvent, TenantVersionRepository
+from application.dto.paginators import LimitOffsetPaginator
+from application.ports.repositories import (
+    TenantEvent,
+    TenantVersionDTO,
+    TenantVersionRepository,
+)
 from domain.tenant import Tenant, TenantFactory, TenantID, TenantState, TenantStatus
 from domain.value_objects import Version
 from infrastructure.db.postgres.base import BasePostgresRepository, handle_domain_errors
@@ -14,7 +17,7 @@ from infrastructure.db.postgres.base import BasePostgresRepository, handle_domai
 class TenantVersionPostgresRepository(BasePostgresRepository, TenantVersionRepository):
     async def by_id_version(
         self, tenant_id: TenantID, version: Version
-    ) -> tuple[Tenant, TenantEvent, TenantID | None, datetime] | None:
+    ) -> TenantVersionDTO | None:
         query = SQL(
             """
             SELECT
@@ -30,7 +33,7 @@ class TenantVersionPostgresRepository(BasePostgresRepository, TenantVersionRepos
             """
         ).format(Identifier(self._tenant_tables.version))
         data = await self._fetchone(query, (tenant_id.tenant_id, version.version))
-        return self._data_to_domain(data) if data is not None else None
+        return self._data_to_dto(data) if data is not None else None
 
     async def filters(
         self,
@@ -40,7 +43,7 @@ class TenantVersionPostgresRepository(BasePostgresRepository, TenantVersionRepos
         states: list[TenantState] | None = None,
         from_version: Version | None = None,
         to_version: Version | None = None,
-    ) -> tuple[list[tuple[Tenant, TenantEvent, TenantID | None, datetime]], int]:
+    ) -> tuple[list[TenantVersionDTO], int]:
         conditions, params = self._init_conditions_with_params(
             tenant_id, statuses, states, from_version, to_version
         )
@@ -67,20 +70,21 @@ class TenantVersionPostgresRepository(BasePostgresRepository, TenantVersionRepos
             paginator,
         )
         data = await self._fetchall(query, tuple(params))
-        return [self._data_to_domain(row) for row in data], count
+        return [self._data_to_dto(row) for row in data], count
 
     async def save(
-        self, tenant: Tenant, event: TenantEvent, editor: Tenant | None = None
+        self, tenant: Tenant, event: TenantEvent, editor_id: TenantID | None = None
     ) -> None:
-        await self._create(tenant, event, editor)
+        await self._create(tenant, event, editor_id)
 
     async def batch_save(
-        self, tenants_events_editors: list[tuple[Tenant, TenantEvent, Tenant | None]]
+        self,
+        items: list[tuple[Tenant, TenantEvent, TenantID | None]],
     ) -> None:
-        await self._batch_create(tenants_events_editors)
+        await self._batch_create(items)
 
     async def _create(
-        self, tenant: Tenant, event: TenantEvent, editor: Tenant | None = None
+        self, tenant: Tenant, event: TenantEvent, editor_id: TenantID | None = None
     ) -> None:
         query = SQL(
             """
@@ -103,14 +107,15 @@ class TenantVersionPostgresRepository(BasePostgresRepository, TenantVersionRepos
                 tenant.state.value,
                 tenant.version.version,
                 event.value,
-                editor.tenant_id.tenant_id if editor is not None else None,
+                editor_id.tenant_id if editor_id is not None else None,
             ),
         )
 
     async def _batch_create(
-        self, tenants_events_editors: list[tuple[Tenant, TenantEvent, Tenant | None]]
+        self,
+        items: list[tuple[Tenant, TenantEvent, TenantID | None]],
     ) -> None:
-        if len(tenants_events_editors) == 0:
+        if len(items) == 0:
             return
         query = SQL(
             """
@@ -134,16 +139,14 @@ class TenantVersionPostgresRepository(BasePostgresRepository, TenantVersionRepos
                     tenant.state.value,
                     tenant.version.version,
                     event.value,
-                    editor.tenant_id.tenant_id if editor is not None else None,
+                    editor_id.tenant_id if editor_id is not None else None,
                 )
-                for tenant, event, editor in tenants_events_editors
+                for tenant, event, editor_id in items
             ],
         )
 
     @handle_domain_errors
-    def _data_to_domain(
-        self, data: DictRow
-    ) -> tuple[Tenant, TenantEvent, TenantID | None, datetime]:
+    def _data_to_dto(self, data: DictRow) -> TenantVersionDTO:
         tenant = TenantFactory.restore(
             data["tenant_id"], data["status"], data["state"], data["version"]
         )
@@ -151,7 +154,12 @@ class TenantVersionPostgresRepository(BasePostgresRepository, TenantVersionRepos
         editor_id = (
             TenantID(data["editor_id"]) if data["editor_id"] is not None else None
         )
-        return tenant, event, editor_id, data["created_at"]
+        return TenantVersionDTO(
+            tenant=tenant,
+            event=event,
+            editor_id=editor_id,
+            created_at=data["created_at"],
+        )
 
     def _init_conditions_with_params(
         self,

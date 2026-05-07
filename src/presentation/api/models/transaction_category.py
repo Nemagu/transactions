@@ -5,10 +5,10 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from application.commands.public.transaction_category import (
-    TransactionCategoryCreationCommand,
-    TransactionCategoryUpdateCommand,
+    CreateTransactionCategoryCommand,
+    UpdateTransactionCategoryCommand,
 )
-from application.dto import (
+from application.dto.transaction_category import (
     TransactionCategorySimpleDTO,
     TransactionCategoryVersionSimpleDTO,
 )
@@ -25,8 +25,8 @@ class TransactionCategoryCreationRequest(BaseModel):
     name: str
     description: str = ""
 
-    def to_command(self, user_id: UUID) -> TransactionCategoryCreationCommand:
-        return TransactionCategoryCreationCommand(
+    def to_command(self, user_id: UUID) -> CreateTransactionCategoryCommand:
+        return CreateTransactionCategoryCommand(
             user_id=user_id,
             name=self.name,
             description=self.description,
@@ -39,8 +39,8 @@ class TransactionCategoryUpdateRequest(BaseModel):
 
     def to_command(
         self, user_id: UUID, category_id: UUID
-    ) -> TransactionCategoryUpdateCommand:
-        return TransactionCategoryUpdateCommand(
+    ) -> UpdateTransactionCategoryCommand:
+        return UpdateTransactionCategoryCommand(
             user_id=user_id,
             category_id=category_id,
             name=self.name,

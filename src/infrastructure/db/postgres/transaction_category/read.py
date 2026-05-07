@@ -4,7 +4,7 @@ from uuid import uuid7
 from psycopg.rows import DictRow
 from psycopg.sql import SQL, Identifier
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import TransactionCategoryReadRepository
 from domain.tenant import TenantID
 from domain.transaction_category import (

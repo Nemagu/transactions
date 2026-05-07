@@ -6,16 +6,16 @@ from decimal import Decimal
 import pytest
 
 from application.commands.public.personal_transaction import (
-    PersonalTransactionCreationCommand,
-    PersonalTransactionCreationUseCase,
-    PersonalTransactionDeletionCommand,
-    PersonalTransactionDeletionUseCase,
-    PersonalTransactionRestorationCommand,
-    PersonalTransactionRestorationUseCase,
-    PersonalTransactionUpdateCommand,
-    PersonalTransactionUpdateUseCase,
+    CreatePersonalTransactionCommand,
+    CreatePersonalTransactionUseCase,
+    DeletePersonalTransactionCommand,
+    DeletePersonalTransactionUseCase,
+    RestorePersonalTransactionCommand,
+    RestorePersonalTransactionUseCase,
+    UpdatePersonalTransactionCommand,
+    UpdatePersonalTransactionUseCase,
 )
-from application.dto import MoneyAmountDTO
+from application.dto.personal_transaction import MoneyAmountDTO
 from application.ports.repositories import PersonalTransactionEvent
 from domain.personal_transaction import PersonalTransactionID, PersonalTransactionType
 from domain.tenant import TenantState, TenantStatus
@@ -43,10 +43,10 @@ async def test_personal_transaction_public_commands_flow(
     await category_read_repo.save(first_category)
     await category_read_repo.save(second_category)
 
-    created = await PersonalTransactionCreationUseCase(uow_factory()).execute(
-        PersonalTransactionCreationCommand(
+    created = await CreatePersonalTransactionUseCase(uow_factory()).execute(
+        CreatePersonalTransactionCommand(
             user_id=initiator.tenant_id.tenant_id,
-            category_ids={first_category.category_id.category_id},
+            category_ids=[first_category.category_id.category_id],
             transaction_type=PersonalTransactionType.EXPENSE.value,
             money_amount=MoneyAmountDTO(amount=Decimal("100.00"), currency="ruble"),
             transaction_time=datetime(2026, 4, 18, 12, 0, 0),
@@ -54,12 +54,12 @@ async def test_personal_transaction_public_commands_flow(
             description="base",
         )
     )
-    updated = await PersonalTransactionUpdateUseCase(uow_factory()).execute(
-        PersonalTransactionUpdateCommand(
+    updated = await UpdatePersonalTransactionUseCase(uow_factory()).execute(
+        UpdatePersonalTransactionCommand(
             user_id=initiator.tenant_id.tenant_id,
             transaction_id=created.transaction_id,
             category_ids=None,
-            add_category_ids={second_category.category_id.category_id},
+            add_category_ids=[second_category.category_id.category_id],
             remove_category_ids=None,
             transaction_type=None,
             money_amount=MoneyAmountDTO(amount=Decimal("120.00"), currency="ruble"),
@@ -68,14 +68,14 @@ async def test_personal_transaction_public_commands_flow(
             description=None,
         )
     )
-    deleted = await PersonalTransactionDeletionUseCase(uow_factory()).execute(
-        PersonalTransactionDeletionCommand(
+    deleted = await DeletePersonalTransactionUseCase(uow_factory()).execute(
+        DeletePersonalTransactionCommand(
             user_id=initiator.tenant_id.tenant_id,
             transaction_id=created.transaction_id,
         )
     )
-    restored = await PersonalTransactionRestorationUseCase(uow_factory()).execute(
-        PersonalTransactionRestorationCommand(
+    restored = await RestorePersonalTransactionUseCase(uow_factory()).execute(
+        RestorePersonalTransactionCommand(
             user_id=initiator.tenant_id.tenant_id,
             transaction_id=created.transaction_id,
         )
@@ -109,5 +109,5 @@ async def test_personal_transaction_public_commands_flow(
             Version(version),
         )
         assert stored is not None
-        assert stored[1] == event
+        assert stored.event == event
 

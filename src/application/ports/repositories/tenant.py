@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Self
@@ -30,6 +31,14 @@ class TenantEvent(StrEnum):
         )
 
 
+@dataclass
+class TenantVersionDTO:
+    tenant: Tenant
+    event: TenantEvent
+    editor_id: TenantID | None
+    created_at: datetime
+
+
 class TenantReadRepository(DomainTenantReadRepository):
     @abstractmethod
     async def filters(
@@ -51,7 +60,7 @@ class TenantVersionRepository(ABC):
     @abstractmethod
     async def by_id_version(
         self, tenant_id: TenantID, version: Version
-    ) -> tuple[Tenant, TenantEvent, TenantID | None, datetime] | None: ...
+    ) -> TenantVersionDTO | None: ...
 
     @abstractmethod
     async def filters(
@@ -62,16 +71,17 @@ class TenantVersionRepository(ABC):
         states: list[TenantState] | None = None,
         from_version: Version | None = None,
         to_version: Version | None = None,
-    ) -> tuple[list[tuple[Tenant, TenantEvent, TenantID | None, datetime]], int]: ...
+    ) -> tuple[list[TenantVersionDTO], int]: ...
 
     @abstractmethod
     async def save(
-        self, tenant: Tenant, event: TenantEvent, editor: Tenant | None = None
+        self, tenant: Tenant, event: TenantEvent, editor_id: TenantID | None = None
     ) -> None: ...
 
     @abstractmethod
     async def batch_save(
-        self, tenants_events_editors: list[tuple[Tenant, TenantEvent, Tenant | None]]
+        self,
+        items: list[tuple[Tenant, TenantEvent, TenantID | None]],
     ) -> None: ...
 
 

@@ -1,27 +1,27 @@
 from application.queries.public.transaction_category.list_last_versions import (
-    TransactionCategoryLastVersionsQuery,
-    TransactionCategoryLastVersionsUseCase,
+    ListTransactionCategoryLastVersionsQuery,
+    ListTransactionCategoryLastVersionsUseCase,
 )
 from application.queries.public.transaction_category.list_versions import (
-    TransactionCategoryVersionsQuery,
-    TransactionCategoryVersionsUseCase,
+    ListTransactionCategoryVersionsQuery,
+    ListTransactionCategoryVersionsUseCase,
 )
 from application.queries.public.transaction_category.retrieve_last_version import (
-    TransactionCategoryLastVersionQuery,
-    TransactionCategoryLastVersionUseCase,
+    GetTransactionCategoryLastVersionQuery,
+    GetTransactionCategoryLastVersionUseCase,
 )
 from application.queries.public.transaction_category.retrieve_version import (
-    TransactionCategoryVersionQuery,
-    TransactionCategoryVersionUseCase,
+    GetTransactionCategoryVersionQuery,
+    GetTransactionCategoryVersionUseCase,
 )
 
 __all__ = [
-    "TransactionCategoryLastVersionQuery",
-    "TransactionCategoryLastVersionUseCase",
-    "TransactionCategoryLastVersionsQuery",
-    "TransactionCategoryLastVersionsUseCase",
-    "TransactionCategoryVersionQuery",
-    "TransactionCategoryVersionUseCase",
-    "TransactionCategoryVersionsQuery",
-    "TransactionCategoryVersionsUseCase",
+    "GetTransactionCategoryLastVersionQuery",
+    "GetTransactionCategoryLastVersionUseCase",
+    "GetTransactionCategoryVersionQuery",
+    "GetTransactionCategoryVersionUseCase",
+    "ListTransactionCategoryLastVersionsQuery",
+    "ListTransactionCategoryLastVersionsUseCase",
+    "ListTransactionCategoryVersionsQuery",
+    "ListTransactionCategoryVersionsUseCase",
 ]

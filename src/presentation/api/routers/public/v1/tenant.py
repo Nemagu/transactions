@@ -3,21 +3,21 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from application.commands.public.tenant import (
-    TenantAppointmentAdminCommand,
-    TenantAppointmentAdminUseCase,
-    TenantAppointmentTenantCommand,
-    TenantAppointmentTenantUseCase,
+    AppointTenantAdminCommand,
+    AppointTenantAdminUseCase,
+    DemoteTenantAdminCommand,
+    DemoteTenantAdminUseCase,
 )
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.queries.public.tenant import (
-    TenantLastVersionQuery,
-    TenantLastVersionsQuery,
-    TenantLastVersionsUseCase,
-    TenantLastVersionUseCase,
-    TenantVersionQuery,
-    TenantVersionsQuery,
-    TenantVersionsUseCase,
-    TenantVersionUseCase,
+    GetTenantLastVersionQuery,
+    GetTenantLastVersionUseCase,
+    GetTenantVersionQuery,
+    GetTenantVersionUseCase,
+    ListTenantLastVersionsQuery,
+    ListTenantLastVersionsUseCase,
+    ListTenantVersionsQuery,
+    ListTenantVersionsUseCase,
 )
 from infrastructure.db.postgres import PostgresUnitOfWork
 from presentation.api.dependencies import db_unit_of_work, user_id_extractor
@@ -44,8 +44,8 @@ async def get_tenants(
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> LimitOffsetPaginatorResult[TenantSimpleResponse]:
     paginator = LimitOffsetPaginator(limit, offset)
-    query = TenantLastVersionsQuery(user_id, paginator, tenant_id, status, state)
-    uc = TenantLastVersionsUseCase(uow)
+    query = ListTenantLastVersionsQuery(user_id, paginator, tenant_id, status, state)
+    uc = ListTenantLastVersionsUseCase(uow)
     result, count = await uc.execute(query)
     result = [TenantSimpleResponse.from_dto(d) for d in result]
     return LimitOffsetPaginatorResult(count=count, results=result)
@@ -56,8 +56,8 @@ async def get_my_tenant(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> TenantSimpleResponse:
-    query = TenantLastVersionQuery(user_id, user_id)
-    uc = TenantLastVersionUseCase(uow)
+    query = GetTenantLastVersionQuery(user_id, user_id)
+    uc = GetTenantLastVersionUseCase(uow)
     dto = await uc.execute(query)
     return TenantSimpleResponse.from_dto(dto)
 
@@ -68,8 +68,8 @@ async def get_tenant(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> TenantSimpleResponse:
-    query = TenantLastVersionQuery(user_id, tenant_id)
-    uc = TenantLastVersionUseCase(uow)
+    query = GetTenantLastVersionQuery(user_id, tenant_id)
+    uc = GetTenantLastVersionUseCase(uow)
     dto = await uc.execute(query)
     return TenantSimpleResponse.from_dto(dto)
 
@@ -87,7 +87,7 @@ async def get_tenant_versions(
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> LimitOffsetPaginatorResult[TenantVersionSimpleResponse]:
     paginator = LimitOffsetPaginator(limit, offset)
-    query = TenantVersionsQuery(
+    query = ListTenantVersionsQuery(
         user_id,
         tenant_id,
         paginator,
@@ -96,7 +96,7 @@ async def get_tenant_versions(
         from_version,
         to_version,
     )
-    uc = TenantVersionsUseCase(uow)
+    uc = ListTenantVersionsUseCase(uow)
     result, count = await uc.execute(query)
     result = [TenantVersionSimpleResponse.from_dto(d) for d in result]
     return LimitOffsetPaginatorResult(count=count, results=result)
@@ -109,8 +109,8 @@ async def get_tenant_version(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> TenantVersionSimpleResponse:
-    query = TenantVersionQuery(user_id, tenant_id, version)
-    uc = TenantVersionUseCase(uow)
+    query = GetTenantVersionQuery(user_id, tenant_id, version)
+    uc = GetTenantVersionUseCase(uow)
     dto = await uc.execute(query)
     return TenantVersionSimpleResponse.from_dto(dto)
 
@@ -121,8 +121,8 @@ async def appoint_admin(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> None:
-    command = TenantAppointmentAdminCommand(user_id, tenant_id)
-    uc = TenantAppointmentAdminUseCase(uow)
+    command = AppointTenantAdminCommand(user_id, tenant_id)
+    uc = AppointTenantAdminUseCase(uow)
     await uc.execute(command)
 
 
@@ -132,6 +132,6 @@ async def appoint_tenant(
     user_id: UUID = Depends(user_id_extractor),
     uow: PostgresUnitOfWork = Depends(db_unit_of_work),
 ) -> None:
-    command = TenantAppointmentTenantCommand(user_id, tenant_id)
-    uc = TenantAppointmentTenantUseCase(uow)
+    command = DemoteTenantAdminCommand(user_id, tenant_id)
+    uc = DemoteTenantAdminUseCase(uow)
     await uc.execute(command)

@@ -5,17 +5,18 @@ from decimal import Decimal
 
 import pytest
 
-from application.dto import LimitOffsetPaginator, MoneyAmountDTO
+from application.dto.paginators import LimitOffsetPaginator
+from application.dto.personal_transaction import MoneyAmountDTO
 from application.ports.repositories import PersonalTransactionEvent
 from application.queries.public.personal_transaction import (
-    PersonalTransactionLastVersionQuery,
-    PersonalTransactionLastVersionsQuery,
-    PersonalTransactionLastVersionsUseCase,
-    PersonalTransactionLastVersionUseCase,
-    PersonalTransactionVersionQuery,
-    PersonalTransactionVersionsQuery,
-    PersonalTransactionVersionsUseCase,
-    PersonalTransactionVersionUseCase,
+    GetPersonalTransactionLastVersionQuery,
+    GetPersonalTransactionLastVersionUseCase,
+    GetPersonalTransactionVersionQuery,
+    GetPersonalTransactionVersionUseCase,
+    ListPersonalTransactionLastVersionsQuery,
+    ListPersonalTransactionLastVersionsUseCase,
+    ListPersonalTransactionVersionsQuery,
+    ListPersonalTransactionVersionsUseCase,
 )
 from domain.personal_transaction import PersonalTransactionType
 from domain.tenant import TenantState, TenantStatus
@@ -77,10 +78,10 @@ async def test_personal_transaction_queries_use_cases(
         transaction_v2, PersonalTransactionEvent.UPDATED, None
     )
 
-    last_versions, last_count = await PersonalTransactionLastVersionsUseCase(
+    last_versions, last_count = await ListPersonalTransactionLastVersionsUseCase(
         uow_factory()
     ).execute(
-        PersonalTransactionLastVersionsQuery(
+        ListPersonalTransactionLastVersionsQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
             transaction_ids=[],
@@ -93,16 +94,16 @@ async def test_personal_transaction_queries_use_cases(
             states=[State.ACTIVE.value],
         )
     )
-    last_version = await PersonalTransactionLastVersionUseCase(uow_factory()).execute(
-        PersonalTransactionLastVersionQuery(
+    last_version = await GetPersonalTransactionLastVersionUseCase(uow_factory()).execute(
+        GetPersonalTransactionLastVersionQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             transaction_id=transaction_id,
         )
     )
-    versions, versions_count = await PersonalTransactionVersionsUseCase(
+    versions, versions_count = await ListPersonalTransactionVersionsUseCase(
         uow_factory()
     ).execute(
-        PersonalTransactionVersionsQuery(
+        ListPersonalTransactionVersionsQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             paginator=LimitOffsetPaginator(limit=10, offset=0),
             transaction_id=transaction_id,
@@ -119,8 +120,8 @@ async def test_personal_transaction_queries_use_cases(
             to_version=2,
         )
     )
-    version = await PersonalTransactionVersionUseCase(uow_factory()).execute(
-        PersonalTransactionVersionQuery(
+    version = await GetPersonalTransactionVersionUseCase(uow_factory()).execute(
+        GetPersonalTransactionVersionQuery(
             initiator_id=initiator.tenant_id.tenant_id,
             transaction_id=transaction_id,
             version=1,

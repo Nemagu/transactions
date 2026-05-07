@@ -3,14 +3,14 @@ from __future__ import annotations
 import pytest
 
 from application.commands.public.transaction_category import (
-    TransactionCategoryCreationCommand,
-    TransactionCategoryCreationUseCase,
-    TransactionCategoryDeletionCommand,
-    TransactionCategoryDeletionUseCase,
-    TransactionCategoryRestorationCommand,
-    TransactionCategoryRestorationUseCase,
-    TransactionCategoryUpdateCommand,
-    TransactionCategoryUpdateUseCase,
+    CreateTransactionCategoryCommand,
+    CreateTransactionCategoryUseCase,
+    DeleteTransactionCategoryCommand,
+    DeleteTransactionCategoryUseCase,
+    RestoreTransactionCategoryCommand,
+    RestoreTransactionCategoryUseCase,
+    UpdateTransactionCategoryCommand,
+    UpdateTransactionCategoryUseCase,
 )
 from application.ports.repositories import TransactionCategoryEvent
 from domain.tenant import TenantState, TenantStatus
@@ -29,29 +29,29 @@ async def test_transaction_category_public_commands_flow(
     initiator = tenant_factory(status=TenantStatus.TENANT, state=TenantState.ACTIVE)
     await tenant_read_repo.save(initiator)
 
-    created = await TransactionCategoryCreationUseCase(uow_factory()).execute(
-        TransactionCategoryCreationCommand(
+    created = await CreateTransactionCategoryUseCase(uow_factory()).execute(
+        CreateTransactionCategoryCommand(
             user_id=initiator.tenant_id.tenant_id,
             name="food",
             description="base",
         )
     )
-    updated = await TransactionCategoryUpdateUseCase(uow_factory()).execute(
-        TransactionCategoryUpdateCommand(
+    updated = await UpdateTransactionCategoryUseCase(uow_factory()).execute(
+        UpdateTransactionCategoryCommand(
             user_id=initiator.tenant_id.tenant_id,
             category_id=created.category_id,
             name="travel",
             description="updated",
         )
     )
-    deleted = await TransactionCategoryDeletionUseCase(uow_factory()).execute(
-        TransactionCategoryDeletionCommand(
+    deleted = await DeleteTransactionCategoryUseCase(uow_factory()).execute(
+        DeleteTransactionCategoryCommand(
             user_id=initiator.tenant_id.tenant_id,
             category_id=created.category_id,
         )
     )
-    restored = await TransactionCategoryRestorationUseCase(uow_factory()).execute(
-        TransactionCategoryRestorationCommand(
+    restored = await RestoreTransactionCategoryUseCase(uow_factory()).execute(
+        RestoreTransactionCategoryCommand(
             user_id=initiator.tenant_id.tenant_id,
             category_id=created.category_id,
         )
@@ -83,4 +83,4 @@ async def test_transaction_category_public_commands_flow(
             Version(version),
         )
         assert stored is not None
-        assert stored[1] == event
+        assert stored.event == event

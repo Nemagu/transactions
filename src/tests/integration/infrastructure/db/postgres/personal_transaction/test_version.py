@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.ports.repositories import PersonalTransactionEvent
 from domain.personal_transaction.value_objects import PersonalTransactionType
 from domain.value_objects import State, Version
@@ -37,7 +37,7 @@ async def test_save_and_by_id_version(
     await transaction_version_repo.save(
         transaction=transaction,
         event=PersonalTransactionEvent.CREATED,
-        editor=editor,
+        editor_id=editor.tenant_id,
     )
 
     stored = await transaction_version_repo.by_id_version(
@@ -46,10 +46,9 @@ async def test_save_and_by_id_version(
     )
 
     assert stored is not None
-    actual_transaction, event, editor_id, _ = stored
-    assert actual_transaction.transaction_id == transaction.transaction_id
-    assert event == PersonalTransactionEvent.CREATED
-    assert editor_id == editor.tenant_id
+    assert stored.transaction.transaction_id == transaction.transaction_id
+    assert stored.event == PersonalTransactionEvent.CREATED
+    assert stored.editor_id == editor.tenant_id
 
 
 @pytest.mark.asyncio
@@ -143,19 +142,19 @@ async def test_filters_count_distinct_versions(
     await transaction_version_repo.save(
         first_version,
         PersonalTransactionEvent.CREATED,
-        editor=None,
+        editor_id=None,
     )
     await transaction_read_repo.save(second_version)
     await transaction_version_repo.save(
         second_version,
         PersonalTransactionEvent.UPDATED,
-        editor=None,
+        editor_id=None,
     )
     await transaction_read_repo.save(third_version)
     await transaction_version_repo.save(
         third_version,
         PersonalTransactionEvent.UPDATED,
-        editor=None,
+        editor_id=None,
     )
 
     categories_map = {
@@ -185,4 +184,4 @@ async def test_filters_count_distinct_versions(
 
     assert count == len(expected_versions)
     assert len(versions) == len(expected_versions)
-    assert {item[0].version.version for item in versions} == expected_versions
+    assert {item.transaction.version.version for item in versions} == expected_versions

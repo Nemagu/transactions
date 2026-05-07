@@ -2,15 +2,15 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from application.dto import LimitOffsetPaginator, TenantVersionSimpleDTO
-from application.errors import AppInvalidDataError
+from application.dto.paginators import LimitOffsetPaginator
+from application.dto.tenant import TenantVersionSimpleDTO
 from application.queries.base import BaseUseCase
 from domain.tenant import TenantID, TenantState, TenantStatus
 from domain.value_objects import Version
 
 
-@dataclass
-class TenantVersionsQuery:
+@dataclass(slots=True, frozen=True)
+class ListTenantVersionsQuery:
     initiator_id: UUID
     tenant_id: UUID
     paginator: LimitOffsetPaginator
@@ -20,21 +20,15 @@ class TenantVersionsQuery:
     to_version: int | None
 
 
-class TenantVersionsUseCase(BaseUseCase):
+class ListTenantVersionsUseCase(BaseUseCase):
     async def execute(
-        self, query: TenantVersionsQuery
+        self, query: ListTenantVersionsQuery
     ) -> tuple[list[TenantVersionSimpleDTO], int]:
         action = "получение нескольких версий арендатора"
+        initiator_id = TenantID(query.initiator_id)
+        filtering_data = self._filtering_data(query)
         async with self._uow as uow:
-            initiator_id = TenantID(query.initiator_id)
-            filtering_data = self._cast_data_from_query(query)
-            initiator = await uow.tenant_repositories.read.by_id(initiator_id)
-            if initiator is None:
-                raise AppInvalidDataError(
-                    msg="инициатор не существует",
-                    action=action,
-                    data={"tenant": {"tenant_id": query.initiator_id}},
-                )
+            initiator = await self._initiator(uow, initiator_id, action)
             if query.initiator_id == query.tenant_id:
                 initiator.raise_access_read()
             else:
@@ -43,11 +37,10 @@ class TenantVersionsUseCase(BaseUseCase):
                 **filtering_data
             )
             return [
-                TenantVersionSimpleDTO.from_domain(tenant, event, editor_id, created_at)
-                for tenant, event, editor_id, created_at in tenant_versions
+                TenantVersionSimpleDTO.from_dto(version) for version in tenant_versions
             ], count
 
-    def _cast_data_from_query(self, query: TenantVersionsQuery) -> dict[str, Any]:
+    def _filtering_data(self, query: ListTenantVersionsQuery) -> dict[str, Any]:
         data = {"paginator": query.paginator, "tenant_id": TenantID(query.tenant_id)}
         if query.statuses is not None:
             data["statuses"] = [TenantStatus(status) for status in query.statuses]

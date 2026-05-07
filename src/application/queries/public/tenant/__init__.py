@@ -1,27 +1,27 @@
 from application.queries.public.tenant.list_last_versions import (
-    TenantLastVersionsQuery,
-    TenantLastVersionsUseCase,
+    ListTenantLastVersionsQuery,
+    ListTenantLastVersionsUseCase,
 )
 from application.queries.public.tenant.list_versions import (
-    TenantVersionsQuery,
-    TenantVersionsUseCase,
+    ListTenantVersionsQuery,
+    ListTenantVersionsUseCase,
 )
 from application.queries.public.tenant.retrieve_last_version import (
-    TenantLastVersionQuery,
-    TenantLastVersionUseCase,
+    GetTenantLastVersionQuery,
+    GetTenantLastVersionUseCase,
 )
 from application.queries.public.tenant.retrieve_version import (
-    TenantVersionQuery,
-    TenantVersionUseCase,
+    GetTenantVersionQuery,
+    GetTenantVersionUseCase,
 )
 
 __all__ = [
-    "TenantLastVersionQuery",
-    "TenantLastVersionUseCase",
-    "TenantLastVersionsQuery",
-    "TenantLastVersionsUseCase",
-    "TenantVersionQuery",
-    "TenantVersionUseCase",
-    "TenantVersionsQuery",
-    "TenantVersionsUseCase",
+    "GetTenantLastVersionQuery",
+    "GetTenantLastVersionUseCase",
+    "GetTenantVersionQuery",
+    "GetTenantVersionUseCase",
+    "ListTenantLastVersionsQuery",
+    "ListTenantLastVersionsUseCase",
+    "ListTenantVersionsQuery",
+    "ListTenantVersionsUseCase",
 ]

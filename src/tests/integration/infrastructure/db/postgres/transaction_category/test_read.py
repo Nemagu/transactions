@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from domain.transaction_category.value_objects import TransactionCategoryName
 from domain.value_objects import State
 

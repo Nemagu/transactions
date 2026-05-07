@@ -1,15 +1,15 @@
 from application.commands.public.tenant.appoint_admin import (
-    TenantAppointmentAdminCommand,
-    TenantAppointmentAdminUseCase,
+    AppointTenantAdminCommand,
+    AppointTenantAdminUseCase,
 )
-from application.commands.public.tenant.appoint_tenant import (
-    TenantAppointmentTenantCommand,
-    TenantAppointmentTenantUseCase,
+from application.commands.public.tenant.demote_admin import (
+    DemoteTenantAdminCommand,
+    DemoteTenantAdminUseCase,
 )
 
 __all__ = [
-    "TenantAppointmentAdminCommand",
-    "TenantAppointmentAdminUseCase",
-    "TenantAppointmentTenantCommand",
-    "TenantAppointmentTenantUseCase",
+    "AppointTenantAdminCommand",
+    "AppointTenantAdminUseCase",
+    "DemoteTenantAdminCommand",
+    "DemoteTenantAdminUseCase",
 ]

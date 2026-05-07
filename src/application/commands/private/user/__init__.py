@@ -1,15 +1,15 @@
 from application.commands.private.user.create import (
-    UserCreationCommand,
-    UserCreationUseCase,
+    CreateUserCommand,
+    CreateUserUseCase,
 )
 from application.commands.private.user.update import (
-    UserUpdateCommand,
-    UserUpdateUseCase,
+    UpdateUserCommand,
+    UpdateUserUseCase,
 )
 
 __all__ = [
-    "UserCreationCommand",
-    "UserCreationUseCase",
-    "UserUpdateCommand",
-    "UserUpdateUseCase",
+    "CreateUserCommand",
+    "CreateUserUseCase",
+    "UpdateUserCommand",
+    "UpdateUserUseCase",
 ]

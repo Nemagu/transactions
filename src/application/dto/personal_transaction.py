@@ -14,16 +14,17 @@ from domain.transaction_category import TransactionCategory
 if TYPE_CHECKING:
     from application.ports.repositories.personal_transaction import (
         PersonalTransactionEvent,
+        PersonalTransactionVersionDTO,
     )
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class MoneyAmountDTO:
     amount: Decimal
     currency: str
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class PersonalTransactionSimpleDTO:
     transaction_id: UUID
     category_ids: list[UUID]
@@ -55,7 +56,7 @@ class PersonalTransactionSimpleDTO:
         )
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class PersonalTransactionDetailDTO:
     transaction_id: UUID
     categories: list[TransactionCategorySimpleDTO]
@@ -92,7 +93,7 @@ class PersonalTransactionDetailDTO:
         )
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class PersonalTransactionVersionSimpleDTO:
     transaction_id: UUID
     category_ids: list[UUID]
@@ -109,13 +110,8 @@ class PersonalTransactionVersionSimpleDTO:
     created_at: datetime
 
     @classmethod
-    def from_domain(
-        cls,
-        transaction: PersonalTransaction,
-        event: "PersonalTransactionEvent",
-        editor_id: TenantID | None,
-        created_at: datetime,
-    ) -> Self:
+    def from_dto(cls, dto: "PersonalTransactionVersionDTO") -> Self:
+        transaction = dto.transaction
         money_amount = MoneyAmountDTO(
             transaction.money_amount.amount, transaction.money_amount.currency.value
         )
@@ -130,13 +126,13 @@ class PersonalTransactionVersionSimpleDTO:
             transaction.transaction_time.transaction_time,
             transaction.state.value,
             transaction.version.version,
-            event.value,
-            editor_id.tenant_id if editor_id is not None else None,
-            created_at,
+            dto.event.value,
+            dto.editor_id.tenant_id if dto.editor_id is not None else None,
+            dto.created_at,
         )
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class PersonalTransactionVersionDetailDTO:
     transaction_id: UUID
     categories: list[TransactionCategorySimpleDTO]

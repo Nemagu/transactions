@@ -13,10 +13,10 @@ from nats.js.client import JetStreamContext
 from pydantic import BaseModel, ValidationError
 
 from application.commands.private.user import (
-    UserCreationCommand,
-    UserCreationUseCase,
-    UserUpdateCommand,
-    UserUpdateUseCase,
+    CreateUserCommand,
+    CreateUserUseCase,
+    UpdateUserCommand,
+    UpdateUserUseCase,
 )
 from application.errors import AppError, AppInternalError, AppNotFoundError
 from domain.errors import DomainError
@@ -138,15 +138,15 @@ class NatsConsumerWorker(NatsBaseWorker):
 
     async def _handle_creation_user(self, payload: dict) -> None:
         user_id, state, version = self._extract_user_data_from_payload(payload)
-        command = UserCreationCommand(user_id, state, version)
+        command = CreateUserCommand(user_id, state, version)
         async with self._db_manager.connection() as db_conn:
-            await UserCreationUseCase(PostgresUnitOfWork(db_conn)).execute(command)
+            await CreateUserUseCase(PostgresUnitOfWork(db_conn)).execute(command)
 
     async def _handle_update_user(self, payload: dict) -> None:
         user_id, state, version = self._extract_user_data_from_payload(payload)
-        command = UserUpdateCommand(user_id, state, version)
+        command = UpdateUserCommand(user_id, state, version)
         async with self._db_manager.connection() as db_conn:
-            await UserUpdateUseCase(PostgresUnitOfWork(db_conn)).execute(command)
+            await UpdateUserUseCase(PostgresUnitOfWork(db_conn)).execute(command)
 
     def _extract_user_data_from_payload(self, payload: dict) -> tuple[UUID, str, int]:
         try:
