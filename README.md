@@ -1,4 +1,4 @@
-# transactions
+# atlas_transactions
 
 Сервис для учета персональных транзакций с разделением на слои `domain`, `application`, `infrastructure`, `presentation`.
 
@@ -57,9 +57,9 @@ uvicorn:
 db:
   host: localhost
   port: 5432
-  user: transactions_user
-  password_file: /run/secrets/transactions_db_password
-  database: transactions
+  user: atlas_transactions_user
+  password_file: /run/secrets/atlas_transactions_db_password
+  database: atlas_transactions
   pool:
     min_size: 10
     max_size: 20
@@ -76,7 +76,7 @@ nats:
   port: 4222
   healthcheck_file: /tmp/nats_worker_healthbeat
   loop_sleep_duration: 2
-  connect_name: transactions-consumer
+  connect_name: atlas-transactions-consumer
   reconnect_time_wait: 5
   connect_timeout: 5
   ping_interval: 120
@@ -91,9 +91,9 @@ user:
 db:
   host: localhost
   port: 5432
-  user: transactions_user
-  password_file: /run/secrets/transactions_db_password
-  database: transactions
+  user: atlas_transactions_user
+  password_file: /run/secrets/atlas_transactions_db_password
+  database: atlas_transactions
   pool:
     min_size: 10
     max_size: 20
@@ -112,9 +112,9 @@ subscription:
 db:
   host: localhost
   port: 5432
-  user: transactions_user
-  password_file: /run/secrets/transactions_db_password
-  database: transactions
+  user: atlas_transactions_user
+  password_file: /run/secrets/atlas_transactions_db_password
+  database: atlas_transactions
   pool:
     min_size: 10
     max_size: 20

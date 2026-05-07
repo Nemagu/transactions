@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS personal_transaction_categories_versions (
     UNIQUE(transaction_version_id, category_id)
 );
 
-INSERT INTO transactions_tables (name)
+INSERT INTO atlas_transactions_tables (name)
 VALUES ('personal_transaction_categories'), ('personal_transaction_categories_versions');
 
 COMMIT;

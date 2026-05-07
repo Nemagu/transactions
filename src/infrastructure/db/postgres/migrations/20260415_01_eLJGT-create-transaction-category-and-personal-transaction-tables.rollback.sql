@@ -4,7 +4,7 @@
 BEGIN;
 
 DELETE
-FROM transactions_tables
+FROM atlas_transactions_tables
 WHERE
     name IN ('transaction_categories', 'transaction_categories_versions', 'personal_transactions', 'personal_transactions_versions');
 

@@ -7,7 +7,7 @@ from psycopg import AsyncConnection, Error
 from psycopg.rows import DictRow
 from psycopg.sql import SQL, Composed, Identifier
 
-from application.dto import LimitOffsetPaginator
+from application.dto.paginators import LimitOffsetPaginator
 from application.errors import AppInternalError
 from domain.errors import DomainError
 
@@ -62,7 +62,7 @@ class PersonalTransactionTables(PrivateAggregateTables):
 
 
 class BasePostgresRepository(ABC):
-    _table_with_tables = "transactions_tables"
+    _table_with_tables = "atlas_transactions_tables"
     _user_tables = ProjectionTables("users")
     _tenant_tables = TenantTables(
         "tenants", "tenants_versions", "tenants_subscriptions"

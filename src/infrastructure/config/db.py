@@ -15,9 +15,9 @@ class PostgresPoolSettings(BaseModel):
 class PostgresSettings(BaseModel):
     host: str = "localhost"
     port: int = 5432
-    user: str = "companies_service"
-    password_file: str = "/tmp/transactions/db_password"
-    database: str = "companies_service"
+    user: str = "atlas_transactions"
+    password_file: str = "/tmp/atlas_transactions/db_password"
+    database: str = "atlas_transactions"
 
     pool: PostgresPoolSettings = Field(default_factory=PostgresPoolSettings)
 

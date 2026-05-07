@@ -11,9 +11,9 @@ uvicorn:
 db:
   host: localhost
   port: 5432
-  user: transactions_user
-  password_file: /run/secrets/transactions_db_password
-  database: transactions
+  user: atlas_transactions_user
+  password_file: /run/secrets/atlas_transactions_db_password
+  database: atlas_transactions
   pool:
     min_size: 10
     max_size: 20
